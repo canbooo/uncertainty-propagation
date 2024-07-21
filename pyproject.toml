@@ -1,10 +1,11 @@
 [tool.poetry]
 name = "uncertainty-propagation"
 version = "0.0.0"
-description = "M Tools to propagate parameter uncertainty through deterministic black-box functions"
+description = "Tools to propagate parameter uncertainty through deterministic black-box functions"
 authors = ["Can Bogoclu"]
 license = "MIT"
 readme = "README.md"
+packages = [{include = "uncertainty_propagation"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
