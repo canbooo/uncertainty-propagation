@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "uncertainty-propagation"
 version = "0.0.0"
-description = "Methods for propagating parameter uncertainty through black-box functions"
+description = "M Tools to propagate parameter uncertainty through deterministic black-box functions"
 authors = ["Can Bogoclu"]
 license = "MIT"
 readme = "README.md"

@@ -1,3 +1,3 @@
-# `uncertainty-propagation`: Tools to propagate input parameter uncertainty through deterministic functions
+# `uncertainty-propagation`: Tools to propagate parameter uncertainty through deterministic black-box functions
 
 Under construction
