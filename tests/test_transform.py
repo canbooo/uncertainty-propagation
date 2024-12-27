@@ -29,9 +29,7 @@ class TestInverseTransformSampler:
         distributions: list[rv_frozen],
     ) -> module_under_test.InverseTransformSampler:
         return module_under_test.InverseTransformSampler(
-            variable.DesignSpace(
-                variables=variable.create_variables_from_distributions(distributions)
-            )
+            variable.DesignSpace(variables=distributions)
         )
 
     def test_transform(self, distributions_to_test: list[rv_frozen]) -> None:
@@ -91,9 +89,7 @@ class TestNatafTransformation:
         distributions: list[rv_frozen], correlation_matrix: np.ndarray
     ) -> module_under_test.InverseTransformSampler:
         return module_under_test.NatafTransformation(
-            variable.DesignSpace(
-                variables=variable.create_variables_from_distributions(distributions)
-            ),
+            variable.DesignSpace(variables=distributions),
             correlation_matrix,
         )
 
