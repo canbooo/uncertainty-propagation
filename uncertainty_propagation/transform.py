@@ -55,7 +55,7 @@ class NatafTransformation(InverseTransformSampler):
 
     def inverse_transform(self, samples: np.ndarray) -> np.ndarray:
         """Transform samples from standard normal space to original space"""
-        return super().inverse_transform(samples.dot(self.correlate_matrix))
+        return super().transform(samples.dot(self.correlate_matrix))
 
 
 def _is_normal_distribution(distribution: rv_frozen) -> bool:
@@ -102,7 +102,7 @@ def solve_nataf(marginal_distributions: list[rv_frozen],
                 if rho_x_acc <= tolerance and rho_z_acc <= tolerance:
                     break
 
-                rho_z_sqr = np.sqrt(1.0 - rho_z**2)
+                rho_z_sqr = np.sqrt(1.0 - rho_z * rho_z)
                 z1_coords = u1_coords
                 z2_coords = rho_z * u1_coords + rho_z_sqr * u2_coords
 
@@ -111,14 +111,14 @@ def solve_nataf(marginal_distributions: list[rv_frozen],
                 x2_coords = col_var_marg.ppf(std_norm.cdf(z2_coords))
                 if not np.isfinite(x1_coords).all() or not np.isfinite(x2_coords).all():
                     break
-                x1_stds = (x1_coords - row_var_marg.mean())
-                x2_stds = (x2_coords - col_var_marg.mean())
+                x1_stds = x1_coords - row_var_marg.mean()
+                x2_stds = x2_coords - col_var_marg.mean()
 
                 # Calculate the result of the integral as in C-Script
                 rho_x_new = np.sum(x1_stds * x2_stds * weights) / denominator
 
                 # Calculate derivative
-                d_rho_x = (u1_coords - rho_z * u2_coords / rho_z_sqr)
+                d_rho_x = u1_coords - rho_z * u2_coords / rho_z_sqr
                 d_rho_x *= std_norm.pdf(z2_coords) / col_var_marg.pdf(x2_coords)
                 d_rho_x = np.sum(d_rho_x * weights * x1_stds) / denominator
 
