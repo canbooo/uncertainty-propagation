@@ -55,7 +55,7 @@ class NatafTransformation(InverseTransformSampler):
 
     def inverse_transform(self, samples: np.ndarray) -> np.ndarray:
         """Transform samples from standard normal space to original space"""
-        return super().transform(samples.dot(self.correlate_matrix))
+        return super().inverse_transform(samples.dot(self.correlate_matrix))
 
 
 def _is_normal_distribution(distribution: rv_frozen) -> bool:
