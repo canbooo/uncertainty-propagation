@@ -1,9 +1,9 @@
-from typing import Protocol
 import logging
+from typing import Protocol
 
-from experiment_design import variable
 import numpy as np
-from scipy import stats, linalg
+from experiment_design import variable
+from scipy import linalg, stats
 from scipy.stats._distn_infrastructure import rv_frozen
 
 
@@ -24,7 +24,9 @@ class InverseTransformSampler:
     def __init__(self, space: variable.DesignSpace) -> None:
         self.space = space
         self.standard_normal_space = variable.DesignSpace(
-            variable.create_variables_from_distributions([stats.norm(loc=0, scale=1) for _ in space.variables])
+            variable.create_variables_from_distributions(
+                [stats.norm(loc=0, scale=1) for _ in space.variables]
+            )
         )
 
     def transform(self, samples: np.ndarray) -> np.ndarray:
@@ -41,7 +43,9 @@ class NatafTransformation(InverseTransformSampler):
     A StandardNormalTransformer for linearly dependent variables (Gaussian Copula)
     """
 
-    def __init__(self, space: variable.DesignSpace, correlation_matrix: np.ndarray) -> None:
+    def __init__(
+        self, space: variable.DesignSpace, correlation_matrix: np.ndarray
+    ) -> None:
         super().__init__(space)
         self.correlate_matrix, self.uncorrelate_matrix = solve_nataf(
             [var.distribution for var in space.variables],
@@ -62,12 +66,14 @@ def _is_normal_distribution(distribution: rv_frozen) -> bool:
     return distribution.dist.name == "norm"
 
 
-def solve_nataf(marginal_distributions: list[rv_frozen],
-                correlation_matrix: np.ndarray,
-                order: int = 13,
-                tolerance: float = 1e-6,
-                max_iteration: int = 1000,
-                verbose: bool = True) -> tuple[np.ndarray, np.ndarray]:
+def solve_nataf(
+    marginal_distributions: list[rv_frozen],
+    correlation_matrix: np.ndarray,
+    order: int = 13,
+    tolerance: float = 1e-6,
+    max_iteration: int = 1000,
+    verbose: bool = True,
+) -> tuple[np.ndarray, np.ndarray]:
     """Calculates the modified correlation matrix assuming Gaussian copula."""
 
     if order <= 1:
@@ -80,7 +86,7 @@ def solve_nataf(marginal_distributions: list[rv_frozen],
     u1_coords, u2_coords = np.meshgrid(herm_coords, herm_coords)
     u1_coords, u2_coords = np.sqrt(2) * u1_coords, np.sqrt(2) * u2_coords
     weights = np.dot(np.transpose([herm_weights]), [herm_weights])
-    std_norm = stats.norm(0., 1.)
+    std_norm = stats.norm(0.0, 1.0)
     z_mod_rho = np.eye(num_variables)
     for row_no in range(num_variables):
         row_var_marg = marginal_distributions[row_no]
@@ -91,7 +97,9 @@ def solve_nataf(marginal_distributions: list[rv_frozen],
             if np.abs(rho_x) < 0.05 or np.abs(rho_x) > 0.99:
                 z_mod_rho[row_no, col_no] = rho_z
                 continue
-            if _is_normal_distribution(row_var_marg) and _is_normal_distribution(col_var_marg):
+            if _is_normal_distribution(row_var_marg) and _is_normal_distribution(
+                col_var_marg
+            ):
                 z_mod_rho[row_no, col_no] = rho_z
                 continue
 
@@ -137,7 +145,6 @@ def solve_nataf(marginal_distributions: list[rv_frozen],
                     rho_z = rho_z_old
                     break
 
-
                 # Calculate the accuracies
                 rho_x_acc = np.abs(rho_x - rho_x_new)
                 rho_z_acc = np.abs(rho_z - rho_z_old)
@@ -154,19 +161,25 @@ def solve_nataf(marginal_distributions: list[rv_frozen],
         correlation_inducing_matrix = linalg.cholesky(rho_u, lower=False)
     except np.linalg.LinAlgError:
         if verbose:
-            logging.warning("Cholesky factorization failed the during Nataf transformation. "
-                            "Please check the passed correlation matrix for possible singularity. "
-                            "Proceeding with eigenvalue decomposition.")
+            logging.warning(
+                "Cholesky factorization failed the during Nataf transformation. "
+                "Please check the passed correlation matrix for possible singularity. "
+                "Proceeding with eigenvalue decomposition."
+            )
         w_z, v_z = linalg.eigh(rho_u)
         correlation_inducing_matrix = np.dot(v_z, np.diag(np.sqrt(w_z))).T
 
     try:
-        correlation_reducing_matrix = np.linalg.solve(correlation_inducing_matrix, np.eye(rho_u.shape[0]))
+        correlation_reducing_matrix = np.linalg.solve(
+            correlation_inducing_matrix, np.eye(rho_u.shape[0])
+        )
     except np.linalg.LinAlgError:
         if verbose:
-            logging.warning("Numpy-matrix inversion failed during the Nataf transformation. "
-                            "Please check the passed correlation matrix for possible singularity. "
-                            "Proceeding with pseudo-inverse, which may lead to unexpected behavior.")
+            logging.warning(
+                "Numpy-matrix inversion failed during the Nataf transformation. "
+                "Please check the passed correlation matrix for possible singularity. "
+                "Proceeding with pseudo-inverse, which may lead to unexpected behavior."
+            )
         correlation_reducing_matrix = np.linalg.pinv(correlation_inducing_matrix)
 
     return correlation_inducing_matrix, correlation_reducing_matrix
