@@ -30,7 +30,7 @@ class TestInverseTransformSampler:
     ) -> module_under_test.InverseTransformSampler:
         return module_under_test.InverseTransformSampler(
             variable.DesignSpace(
-                variables=variable.create_variables_from_distributions(distributions)
+                variables=distributions
             )
         )
 
@@ -92,7 +92,7 @@ class TestNatafTransformation:
     ) -> module_under_test.InverseTransformSampler:
         return module_under_test.NatafTransformation(
             variable.DesignSpace(
-                variables=variable.create_variables_from_distributions(distributions)
+                variables=distributions
             ),
             correlation_matrix,
         )
