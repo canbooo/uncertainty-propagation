@@ -8,7 +8,6 @@ from scipy.stats._distn_infrastructure import rv_frozen
 
 
 class StandardNormalTransformer(typing.Protocol):
-
     def transform(self, samples: np.ndarray) -> np.ndarray:
         """Transform samples from original space to standard normal space"""
 
