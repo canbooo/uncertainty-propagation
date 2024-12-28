@@ -43,10 +43,10 @@ class ProbabilityIntegrator(abc.ABC):
 
         :param space: Parameter space describing the uncertainty of parameters
         :param propagate_through: Function(s) to propagate the uncertainty of the inputs that will be evaluated.
-            In case multiple functions are passed as propagate_through, this computation will consider the lower envelope,
-            i.e. the minimum of all functions, thus yielding a series system in reliability engineering use case. If you
-            want to compute individual failure probabilities to, e.g. to simulate a parallel system, you need to call
-            this method with each function separately and take the minimum of the probabilities afterward.
+        In case multiple functions are passed as propagate_through, this computation will consider the lower envelope,
+        i.e. the minimum of all functions, thus yielding a series system in reliability engineering use case. If you
+        want to compute individual failure probabilities to, e.g. to simulate a parallel system, you need to call
+        this method with each function separately and take the minimum of the probabilities afterward.
         :param cache: if True, track the used samples and the corresponding outputs. The outputs belong to the
         used envelope and the individual outputs are not tracked.
         :param limit: the CDF of the ParameterSpace will be evaluated at this value
