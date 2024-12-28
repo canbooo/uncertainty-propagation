@@ -24,7 +24,6 @@ def distributions_to_test() -> list[rv_frozen]:
 
 
 class TestInverseTransformSampler:
-
     @staticmethod
     def get_instance(
         distributions: list[rv_frozen],
@@ -99,7 +98,6 @@ def test_solve_nataf_non_normal_dist(
 
 
 class TestNatafTransformation:
-
     @staticmethod
     def get_instance(
         space: ParameterSpace,

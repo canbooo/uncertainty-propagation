@@ -11,7 +11,6 @@ from uncertainty_propagation import transform
 
 
 class ProbabilityIntegrator(abc.ABC):
-
     use_standard_normal_space: bool = True
     use_multiprocessing: bool = False
 

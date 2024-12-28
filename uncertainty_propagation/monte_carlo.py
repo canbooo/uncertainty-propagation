@@ -52,7 +52,6 @@ class MonteCarloSimulation(integrator.ProbabilityIntegrator):
         envelope: Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
         cache: bool = False,
     ) -> tuple[float, float, tuple[np.ndarray, np.ndarray] | None]:
-
         total_samples = 0
         history_x, history_y = None, None
         probability = 0.0

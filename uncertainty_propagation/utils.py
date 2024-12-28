@@ -1,4 +1,4 @@
-""" utils.py is almost always a code smell, but we accept it during development """
+"""utils.py is almost always a code smell, but we accept it during development"""
 
 import numpy as np
 
