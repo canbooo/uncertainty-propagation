@@ -38,7 +38,7 @@ class InverseTransformSampler:
         return self.space.value_of(self.standard_normal_space.cdf_of(samples))
 
 
-class NatafTransformator(InverseTransformSampler):
+class NatafTransformer(InverseTransformSampler):
     """
     A StandardNormalTransformer for linearly dependent variables (Gaussian Copula)
     """

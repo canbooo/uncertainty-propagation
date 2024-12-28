@@ -91,7 +91,7 @@ class TestNatafTransformation:
     def get_instance(
         space: ParameterSpace,
     ) -> module_under_test.InverseTransformSampler:
-        return module_under_test.NatafTransformator(space)
+        return module_under_test.NatafTransformer(space)
 
     def test_transform(
         self,
