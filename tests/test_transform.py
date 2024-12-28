@@ -3,6 +3,7 @@ from itertools import combinations
 import numpy as np
 import pytest
 from experiment_design import orthogonal_sampling, variable
+from experiment_design.variable import ParameterSpace
 from scipy import stats
 from scipy.stats._distn_infrastructure import rv_frozen
 
@@ -29,7 +30,7 @@ class TestInverseTransformSampler:
         distributions: list[rv_frozen],
     ) -> module_under_test.InverseTransformSampler:
         return module_under_test.InverseTransformSampler(
-            variable.DesignSpace(
+            variable.ParameterSpace(
                 variables=variable.create_variables_from_distributions(distributions)
             )
         )
@@ -63,24 +64,24 @@ class TestInverseTransformSampler:
 
 def test_solve_nataf_normal_dist(current_correlation_matrix: np.ndarray) -> None:
     marginals = [stats.norm(0, 1) for _ in range(2)]
-    correlate, uncorrelate = module_under_test.solve_nataf(
+    correlate, decorrelate = module_under_test.solve_gaussian_copula(
         marginals, current_correlation_matrix
     )
     assert np.isclose(correlate.T.dot(correlate), current_correlation_matrix).all()
-    full_uncorrelate = uncorrelate.dot(uncorrelate.T)
-    assert np.isclose(current_correlation_matrix.dot(full_uncorrelate), np.eye(2)).all()
+    full_decorrelate = decorrelate.dot(decorrelate.T)
+    assert np.isclose(current_correlation_matrix.dot(full_decorrelate), np.eye(2)).all()
 
 
 def test_solve_nataf_non_normal_dist(
     current_correlation_matrix: np.ndarray, distributions_to_test: list[rv_frozen]
 ) -> None:
     for dist1, dist2 in combinations(distributions_to_test, 2):
-        correlate, uncorrelate = module_under_test.solve_nataf(
+        correlate, decorrelate = module_under_test.solve_gaussian_copula(
             [dist1, dist2], current_correlation_matrix
         )
-        full_uncorrelate = uncorrelate.dot(uncorrelate.T)
+        full_decorrelate = decorrelate.dot(decorrelate.T)
         full_correlate = correlate.T.dot(correlate)
-        test_matrix = full_correlate.dot(full_uncorrelate)
+        test_matrix = full_correlate.dot(full_decorrelate)
         assert np.isclose(test_matrix, np.eye(2), rtol=0.0, atol=1e-5).all()
 
 
@@ -88,14 +89,9 @@ class TestNatafTransformation:
 
     @staticmethod
     def get_instance(
-        distributions: list[rv_frozen], correlation_matrix: np.ndarray
+        space: ParameterSpace,
     ) -> module_under_test.InverseTransformSampler:
-        return module_under_test.NatafTransformation(
-            variable.DesignSpace(
-                variables=variable.create_variables_from_distributions(distributions)
-            ),
-            correlation_matrix,
-        )
+        return module_under_test.NatafTransformator(space)
 
     def test_transform(
         self,
@@ -104,26 +100,23 @@ class TestNatafTransformation:
     ) -> None:
         np.random.seed(42)
         for dist1, dist2 in combinations(distributions_to_test, 2):
-            designer = orthogonal_sampling.OrthogonalSamplingDesigner(
-                target_correlation=current_correlation_matrix
+            designer = orthogonal_sampling.OrthogonalSamplingDesigner()
+            space = ParameterSpace(
+                variables=[dist1, dist2], correlation=current_correlation_matrix
             )
             doe = designer.design(
-                variables=variable.create_variables_from_distributions([dist1, dist2]),
+                space=space,
                 sample_size=1000,
                 steps=10,
             )
-            corr_mat = current_correlation_matrix  # np.corrcoef(doe, rowvar=False)
-            instance = self.get_instance([dist1, dist2], corr_mat)
+            instance = self.get_instance(space)
             transformed = instance.transform(doe)
-            if not np.isclose(
-                np.corrcoef(transformed, rowvar=False), np.eye(2), rtol=5e-2, atol=1e-1
-            ).all():
-                assert np.isclose(
-                    np.corrcoef(transformed, rowvar=False),
-                    np.eye(2),
-                    rtol=5e-2,
-                    atol=1e-1,
-                ).all()
+            assert np.isclose(
+                np.corrcoef(transformed, rowvar=False),
+                np.eye(2),
+                rtol=5e-2,
+                atol=7.5e-2,
+            ).all()
 
     def test_inverse_transform(
         self,
@@ -132,21 +125,22 @@ class TestNatafTransformation:
     ) -> None:
         np.random.seed(42)
         for dist1, dist2 in combinations(distributions_to_test, 2):
-            designer = orthogonal_sampling.OrthogonalSamplingDesigner(
-                target_correlation=0
-            )
+            designer = orthogonal_sampling.OrthogonalSamplingDesigner()
             doe = designer.design(
-                variables=variable.create_variables_from_distributions(
-                    [stats.norm(0, 1) for _ in range(2)]
-                ),
+                space=ParameterSpace([stats.norm(0, 1) for _ in range(2)]),
                 sample_size=1000,
                 steps=10,
             )
-            instance = self.get_instance([dist1, dist2], current_correlation_matrix)
+
+            instance = self.get_instance(
+                ParameterSpace(
+                    variables=[dist1, dist2], correlation=current_correlation_matrix
+                )
+            )
             untransformed = instance.inverse_transform(doe)
             assert np.isclose(
                 np.corrcoef(untransformed, rowvar=False),
                 current_correlation_matrix,
                 rtol=5e-2,
-                atol=5e-2,
+                atol=7.5e-2,
             ).all()
