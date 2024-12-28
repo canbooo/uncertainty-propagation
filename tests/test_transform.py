@@ -30,9 +30,7 @@ class TestInverseTransformSampler:
         distributions: list[rv_frozen],
     ) -> module_under_test.InverseTransformSampler:
         return module_under_test.InverseTransformSampler(
-            variable.ParameterSpace(
-                variables=variable.create_variables_from_distributions(distributions)
-            )
+            variable.ParameterSpace(variables=distributions)
         )
 
     def test_transform(self, distributions_to_test: list[rv_frozen]) -> None:
