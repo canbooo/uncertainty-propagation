@@ -2,13 +2,9 @@ import abc
 from typing import Any, Callable, Type
 
 import numpy as np
-from experiment_design.variable import ParameterSpace
+from experiment_design import variable
 
-from uncertainty_propagation.transform import (
-    InverseTransformSampler,
-    NatafTransformer,
-    StandardNormalTransformer,
-)
+from uncertainty_propagation import transform
 
 
 class ProbabilityIntegrator(abc.ABC):
@@ -16,13 +12,13 @@ class ProbabilityIntegrator(abc.ABC):
     use_standard_normal_space: bool = True
 
     def __init__(
-        self, transformer_cls: Type[StandardNormalTransformer] | None = None
+        self, transformer_cls: Type[transform.StandardNormalTransformer] | None = None
     ) -> None:
         self.transformer_cls = transformer_cls
 
     def calculate_probability(
         self,
-        space: ParameterSpace,
+        space: variable.ParameterSpace,
         propagate_through: (
             Callable[[np.ndarray], np.ndarray]
             | list[Callable[[np.ndarray], np.ndarray]]
@@ -47,10 +43,10 @@ class ProbabilityIntegrator(abc.ABC):
         :return: estimated probability and the standard error of the estimate as well as arrays of evaluated inputs
         and the corresponding outputs if `cache=True`.
         """
-        envelope = _zero_centered_envelope(propagate_through, limit)
+        envelope = transform_to_zero_centered_envelope(propagate_through, limit)
         if self.use_standard_normal_space:
             transformer = _initialize(self.transformer_cls, space)
-            envelope = _transform_to_standard_normal_space(envelope, transformer)
+            envelope = transform_to_standard_normal_envelope(envelope, transformer)
 
         probability, std_error, cached = self._calculate_probability(
             space, envelope, cache
@@ -62,7 +58,7 @@ class ProbabilityIntegrator(abc.ABC):
     @abc.abstractmethod
     def _calculate_probability(
         self,
-        space: ParameterSpace,
+        space: variable.ParameterSpace,
         envelope: Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
         cache: bool = False,
     ) -> tuple[float, float, tuple[np.ndarray, np.ndarray] | None]:
@@ -70,16 +66,17 @@ class ProbabilityIntegrator(abc.ABC):
 
 
 def _initialize(
-    transformer_cls: Type[StandardNormalTransformer] | None, space: ParameterSpace
-) -> StandardNormalTransformer:
+    transformer_cls: Type[transform.StandardNormalTransformer] | None,
+    space: variable.ParameterSpace,
+) -> transform.StandardNormalTransformer:
     if transformer_cls is not None:
         return transformer_cls(space)
     if np.isclose(space.correlation, np.eye(space.dimensions)).all():
-        return InverseTransformSampler(space)
-    return NatafTransformer(space)
+        return transform.InverseTransformSampler(space)
+    return transform.NatafTransformer(space)
 
 
-def _zero_centered_envelope(
+def transform_to_zero_centered_envelope(
     propagate_through: (
         Callable[[np.ndarray], np.ndarray] | list[Callable[[np.ndarray], np.ndarray]]
     ),
@@ -94,16 +91,17 @@ def _zero_centered_envelope(
     def zero_centered_envelope(
         x: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        y = np.ones(x.shape)
+        y = np.ones((x.shape[0], len(propagate_through)))
         for i_col, fun in enumerate(propagate_through):
-            y[:, i_col] = fun(x)
+            y[:, i_col] = fun(x).reshape(-1)
         return np.min(y, axis=1) - limit, x, y
 
     return zero_centered_envelope
 
 
-def _transform_to_standard_normal_space(
-    envelope: Callable[[np.ndarray], Any], transformer: StandardNormalTransformer
+def transform_to_standard_normal_envelope(
+    envelope: Callable[[np.ndarray], Any],
+    transformer: transform.StandardNormalTransformer,
 ) -> Callable[[np.ndarray], np.ndarray]:
     """Given a function, construct a new one that accepts inputs from standard normal space and converts them to
     original space before passing them to the original function.

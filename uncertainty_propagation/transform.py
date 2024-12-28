@@ -1,5 +1,5 @@
 import logging
-from typing import Protocol
+import typing
 
 import numpy as np
 from experiment_design import variable
@@ -7,7 +7,7 @@ from scipy import linalg, stats
 from scipy.stats._distn_infrastructure import rv_frozen
 
 
-class StandardNormalTransformer(Protocol):
+class StandardNormalTransformer(typing.Protocol):
 
     def transform(self, samples: np.ndarray) -> np.ndarray:
         """Transform samples from original space to standard normal space"""
