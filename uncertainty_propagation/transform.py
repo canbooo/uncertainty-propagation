@@ -1,5 +1,5 @@
 import logging
-from typing import Protocol
+import typing
 
 import numpy as np
 from experiment_design import variable
@@ -7,7 +7,7 @@ from scipy import linalg, stats
 from scipy.stats._distn_infrastructure import rv_frozen
 
 
-class StandardNormalTransformer(Protocol):
+class StandardNormalTransformer(typing.Protocol):
 
     def transform(self, samples: np.ndarray) -> np.ndarray:
         """Transform samples from original space to standard normal space"""
@@ -21,9 +21,9 @@ class InverseTransformSampler:
     A StandardNormalTransformer for independent variables
     """
 
-    def __init__(self, space: variable.DesignSpace) -> None:
+    def __init__(self, space: variable.ParameterSpace) -> None:
         self.space = space
-        self.standard_normal_space = variable.DesignSpace(
+        self.standard_normal_space = variable.ParameterSpace(
             variable.create_variables_from_distributions(
                 [stats.norm(loc=0, scale=1) for _ in space.variables]
             )
@@ -38,24 +38,22 @@ class InverseTransformSampler:
         return self.space.value_of(self.standard_normal_space.cdf_of(samples))
 
 
-class NatafTransformation(InverseTransformSampler):
+class NatafTransformer(InverseTransformSampler):
     """
     A StandardNormalTransformer for linearly dependent variables (Gaussian Copula)
     """
 
-    def __init__(
-        self, space: variable.DesignSpace, correlation_matrix: np.ndarray
-    ) -> None:
+    def __init__(self, space: variable.ParameterSpace) -> None:
         super().__init__(space)
-        self.correlate_matrix, self.uncorrelate_matrix = solve_nataf(
+        self.correlate_matrix, self.decorrelate_matrix = solve_gaussian_copula(
             [var.distribution for var in space.variables],
-            correlation_matrix,
+            space.correlation,
         )
 
     def transform(self, samples: np.ndarray) -> np.ndarray:
         """Transform samples from original space to standard normal space"""
         transformed = super().transform(samples)
-        return transformed.dot(self.uncorrelate_matrix)
+        return transformed.dot(self.decorrelate_matrix)
 
     def inverse_transform(self, samples: np.ndarray) -> np.ndarray:
         """Transform samples from standard normal space to original space"""
@@ -66,7 +64,7 @@ def _is_normal_distribution(distribution: rv_frozen) -> bool:
     return distribution.dist.name == "norm"
 
 
-def solve_nataf(
+def solve_gaussian_copula(
     marginal_distributions: list[rv_frozen],
     correlation_matrix: np.ndarray,
     order: int = 13,

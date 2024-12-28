@@ -263,13 +263,13 @@ test = ["pytest (>=6)"]
 
 [[package]]
 name = "experiment-design"
-version = "0.0.4"
+version = "0.0.5"
 description = "Tools to create designs of experiments"
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "experiment_design-0.0.4-py3-none-any.whl", hash = "sha256:7c624bfc56cc0e5736701fe81239e5ff417820a500f533da55a08904d702eb03"},
-    {file = "experiment_design-0.0.4.tar.gz", hash = "sha256:18f0ee4157c791f168af2686f8ef82bdf95af7f350a32e0a726f788b23af89fc"},
+    {file = "experiment_design-0.0.5-py3-none-any.whl", hash = "sha256:29fa719395657d9f8df6d0d5a6aab36ef10aedc1deb6a14533a811e62c58b7f0"},
+    {file = "experiment_design-0.0.5.tar.gz", hash = "sha256:df2708f0d16eb7bf882e1d019a950aa3d2dd190e121d32ced5cc248307b01168"},
 ]
 
 [package.dependencies]
@@ -430,6 +430,17 @@ python-versions = ">=3.7"
 files = [
     {file = "iniconfig-2.0.0-py3-none-any.whl", hash = "sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374"},
     {file = "iniconfig-2.0.0.tar.gz", hash = "sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3"},
+]
+
+[[package]]
+name = "joblib"
+version = "1.4.2"
+description = "Lightweight pipelining with Python functions"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "joblib-1.4.2-py3-none-any.whl", hash = "sha256:06d478d5674cbc267e7496a410ee875abd68e4340feff4490bcb7afb88060ae6"},
+    {file = "joblib-1.4.2.tar.gz", hash = "sha256:2382c5816b2636fbd20a09e0f4e9dad4736765fdfb7dca582943b9c1366b3f0e"},
 ]
 
 [[package]]
@@ -1177,4 +1188,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "105f377a97e8648f1266536af43a73ae147b5d66ecf4a8230b861b05da82b830"
+content-hash = "b40fa1543b75d25e5020cd35cd1d5b4e58da94b26b1fdcd4a0bbfdf574d0a963"

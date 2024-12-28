@@ -10,7 +10,8 @@ packages = [{include = "uncertainty_propagation"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 numpy = "^2.1.0"
-experiment-design = "^0.0.4"
+experiment-design = "^0.0.5"
+joblib = "^1.4.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.1"
