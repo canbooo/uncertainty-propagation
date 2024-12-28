@@ -61,6 +61,21 @@ class TestInverseTransformSampler:
             assert res1.pvalue > 0.05, f"{dist1.dist.name} failed"
             assert res2.pvalue > 0.05, f"{dist2.dist.name} failed"
 
+    def test_reconstruction(self, distributions_to_test: list[rv_frozen]):
+        np.random.seed(42)
+        for dist1, dist2 in combinations(distributions_to_test, 2):
+            space = ParameterSpace(variables=[dist1, dist2])
+            instance = self.get_instance([dist1, dist2])
+
+            designer = orthogonal_sampling.OrthogonalSamplingDesigner()
+            doe = designer.design(
+                space=space,
+                sample_size=1000,
+                steps=10,
+            )
+            rec = instance.inverse_transform(instance.transform(doe))
+            assert np.isclose(doe, rec).all()
+
 
 def test_solve_nataf_normal_dist(current_correlation_matrix: np.ndarray) -> None:
     marginals = [stats.norm(0, 1) for _ in range(2)]
@@ -144,3 +159,24 @@ class TestNatafTransformation:
                 rtol=5e-2,
                 atol=7.5e-2,
             ).all()
+
+    def test_reconstruction(
+        self,
+        current_correlation_matrix: np.ndarray,
+        distributions_to_test: list[rv_frozen],
+    ):
+        np.random.seed(42)
+        for dist1, dist2 in combinations(distributions_to_test, 2):
+            space = ParameterSpace(
+                variables=[dist1, dist2], correlation=current_correlation_matrix
+            )
+            instance = self.get_instance(space)
+
+            designer = orthogonal_sampling.OrthogonalSamplingDesigner()
+            doe = designer.design(
+                space=space,
+                sample_size=1000,
+                steps=10,
+            )
+            rec = instance.inverse_transform(instance.transform(doe))
+            assert np.isclose(doe, rec).all()
