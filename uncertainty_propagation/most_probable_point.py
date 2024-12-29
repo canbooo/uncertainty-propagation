@@ -132,6 +132,13 @@ class FirstOrderApproximation(ProbabilityIntegrator):
     Assumes P(Y <= y) = phi_inv(||x_mpp||) where phi_inv is the inverse of the
     standard normal distribution and ||x_mpp|| is the distance to the most probable, i.e. closest point, with
     f(x_mpp) = y in the standard normal space. See FirstOrderApproximationSettings docstring for further details.
+
+    A. M. Hasofer and N. Lind (1974). “Exact and Invariant Second Moment Code Format”
+    https://www.researchgate.net/publication/243758427_An_Exact_and_Invariant_First_Order_Reliability_Format
+
+    C. Song and R. Kawai, (2023). "Monte Carlo and variance reduction methods for structural reliability analysis:
+    A comprehensive review"
+    https://doi.org/10.1016/j.probengmech.2023.103479
     """
 
     use_multiprocessing: bool = True
