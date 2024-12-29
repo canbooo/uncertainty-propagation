@@ -70,6 +70,10 @@ class MonteCarloSimulation(integrator.ProbabilityIntegrator):
     https://hss-opus.ub.ruhr-uni-bochum.de/opus4/frontdoor/deliver/index/docId/9143/file/diss.pdf
 
     See MonteCarloSimulatorSettings documentation for  further details.
+
+    Further references:
+    A. B. Owen (2013). "Monte Carlo theory, methods and examples"
+    https://artowen.su.domains/mc/
     """
 
     use_standard_normal_space: bool = False
@@ -78,7 +82,7 @@ class MonteCarloSimulation(integrator.ProbabilityIntegrator):
         if settings is None:
             settings = MonteCarloSimulatorSettings()
         self.settings = settings
-        super().__init__()
+        super(MonteCarloSimulation, self).__init__()
 
     def _calculate_probability(
         self,
