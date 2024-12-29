@@ -119,5 +119,5 @@ class MonteCarloSimulation(integrator.ProbabilityIntegrator):
                 )  # estimate CoV using 2.80 from
                 if cov <= self.settings.target_variation_coefficient:
                     break
-        std_err = probability * (1 - probability) / total_samples
+        std_err = np.sqrt(probability * (1 - probability) / total_samples)
         return probability, std_err, (history_x, history_y)
