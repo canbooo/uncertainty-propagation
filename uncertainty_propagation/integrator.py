@@ -14,7 +14,8 @@ from uncertainty_propagation import transform
 class IntegrationResult:
     probability: float
     standard_error: float
-    history: tuple[np.ndarray | None, np.ndarray | None]
+    input_history: np.ndarray | None
+    output_history: np.ndarray | None
 
 
 class ProbabilityIntegrator(abc.ABC):
@@ -62,7 +63,10 @@ class ProbabilityIntegrator(abc.ABC):
             space, envelope, cache
         )
         return IntegrationResult(
-            probability=probability, standard_error=std_error, history=cached
+            probability=probability,
+            standard_error=std_error,
+            input_history=cached[0],
+            output_history=cached[1],
         )
 
     @abc.abstractmethod
