@@ -6,6 +6,7 @@ from typing import Any, Callable, Type
 import joblib
 import numpy as np
 from experiment_design import variable
+from scipy import stats
 
 from uncertainty_propagation import transform
 
@@ -16,6 +17,18 @@ class IntegrationResult:
     standard_error: float
     input_history: np.ndarray | None
     output_history: np.ndarray | None
+
+    def __post_init__(self):
+        if (
+            self.input_history is not None
+            and self.output_history is not None
+            and self.input_history.shape[0] != self.output_history.shape[0]
+        ):
+            raise ValueError("Inconsistent shapes of input and output histories!")
+
+    @property
+    def safety_index(self) -> float:
+        return -stats.norm.ppf(self.probability)
 
 
 class ProbabilityIntegrator(abc.ABC):
