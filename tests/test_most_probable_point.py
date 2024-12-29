@@ -71,6 +71,13 @@ class TestFirstOrderApproximation:
             result = instance.calculate_probability(space, fun)
             assert np.isclose(result.safety_index, linear_beta, atol=5e-2)
 
+    def test_linear_no_mpp(self, std_norm_parameter_space):
+        np.random.seed(1337)
+        instance = self.get_instance()
+        fun = functools.partial(reliability_test_functions.linear, beta=12)
+        result = instance.calculate_probability(std_norm_parameter_space, fun)
+        assert result.probability == 0.0
+
     def test_linear_non_norm(self, linear_beta, non_norm_parameter_space):
         np.random.seed(1337)
         instance = self.get_instance()
