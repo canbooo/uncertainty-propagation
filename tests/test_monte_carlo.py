@@ -41,7 +41,7 @@ class TestMonteCarloSimulation:
         assert np.isclose(result.safety_index, expected, atol=1e-1)
 
     def test_styblinski_tang(
-        self, linear_beta, std_norm_parameter_space, std_norm_10d_parameter_space
+        self, std_norm_parameter_space, std_norm_10d_parameter_space
     ):
         np.random.seed(1337)
         instance = self.get_instance()
