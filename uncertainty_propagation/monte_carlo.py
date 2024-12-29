@@ -74,7 +74,9 @@ class MonteCarloSimulation(integrator.ProbabilityIntegrator):
 
     use_standard_normal_space: bool = False
 
-    def __init__(self, settings: MonteCarloSimulatorSettings):
+    def __init__(self, settings: MonteCarloSimulatorSettings | None = None):
+        if settings is None:
+            settings = MonteCarloSimulatorSettings()
         self.settings = settings
         super().__init__()
 
@@ -107,7 +109,7 @@ class MonteCarloSimulation(integrator.ProbabilityIntegrator):
                 cache_y=cache,
             )
             probability = probability * total_samples + (
-                self.settings.comparison(y_min, 0.0)
+                np.sum(self.settings.comparison(y_min, 0.0))
             )
             total_samples += batch_size
             probability /= total_samples

@@ -1,6 +1,7 @@
 """utils.py is almost always a code smell, but we accept it during development"""
 
 import numpy as np
+from scipy import stats
 
 
 def append_or_assign(history: np.ndarray | None, addition: np.ndarray) -> np.ndarray:
@@ -22,3 +23,7 @@ def extend_cache(
     if cache_y:
         history_y = append_or_assign(history_y, new_y)
     return history_x, history_y
+
+
+def safety_index(probability: float):
+    return -stats.norm.ppf(probability)
