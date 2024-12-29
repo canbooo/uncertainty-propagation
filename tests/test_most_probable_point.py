@@ -114,11 +114,63 @@ class TestFirstOrderApproximation:
         # increased tolerance due to multi-modality
         assert np.isclose(result.safety_index, 3.10, atol=1)
 
-    def test_modified_rastrigin(self, std_norm_parameter_space):
+
+class TestImportanceSampling:
+    @staticmethod
+    def get_instance(
+        settings: module_under_test.FirstOrderApproximationSettings | None = None,
+    ) -> module_under_test.FirstOrderApproximation:
+        return module_under_test.FirstOrderApproximation(settings)
+
+    def test_linear_std_norm(
+        self, linear_beta, std_norm_parameter_space, std_norm_10d_parameter_space
+    ):
         np.random.seed(1337)
         instance = self.get_instance()
+        for space in [std_norm_parameter_space, std_norm_10d_parameter_space]:
+            fun = functools.partial(reliability_test_functions.linear, beta=linear_beta)
+            result = instance.calculate_probability(space, fun)
+            assert np.isclose(result.safety_index, linear_beta, atol=5e-2)
+
+    def test_linear_no_mpp(self, std_norm_parameter_space):
+        np.random.seed(1337)
+        instance = self.get_instance()
+        fun = functools.partial(reliability_test_functions.linear, beta=12)
+        result = instance.calculate_probability(std_norm_parameter_space, fun)
+        assert result.probability == 0.0
+
+    def test_linear_non_norm(self, linear_beta, non_norm_parameter_space):
+        np.random.seed(1337)
+        instance = self.get_instance()
+        fun = functools.partial(reliability_test_functions.linear, beta=linear_beta)
+        result = instance.calculate_probability(non_norm_parameter_space, fun)
+        expected = {3: 1.66, 2: 0.82, 0: -0.45, -1: -0.92}[linear_beta]
+        assert np.isclose(result.safety_index, expected, atol=5e-2)
+
+    def test_linear_corr(self, linear_beta, correlated_norm_parameter_space):
+        np.random.seed(1337)
+        instance = self.get_instance()
+        fun = functools.partial(reliability_test_functions.linear, beta=linear_beta)
+        result = instance.calculate_probability(correlated_norm_parameter_space, fun)
+        expected = {3: 2.46, 2: 1.63, 0: 0.00, -1: -0.82}[linear_beta]
+        assert np.isclose(result.safety_index, expected, atol=5e-2)
+
+    def test_styblinski_tang(self, std_norm_parameter_space):
+        np.random.seed(1337)
+        settings = module_under_test.FirstOrderApproximationSettings(n_searches=32)
+        instance = self.get_instance(settings)
         result = instance.calculate_probability(
-            std_norm_parameter_space, reliability_test_functions.modified_rastrigin
+            std_norm_parameter_space, reliability_test_functions.styblinski_tang
         )
         # increased tolerance due to multi-modality
-        assert np.isclose(result.safety_index, 1.45, atol=1)
+        assert np.isclose(result.safety_index, 3.64, atol=0.2)
+
+    def test_modified_himmblau(self, std_norm_parameter_space):
+        np.random.seed(1337)
+        settings = module_under_test.FirstOrderApproximationSettings(n_searches=32)
+        instance = self.get_instance(settings)
+        result = instance.calculate_probability(
+            std_norm_parameter_space, reliability_test_functions.modified_himmblau
+        )
+        # increased tolerance due to multi-modality
+        assert np.isclose(result.safety_index, 3.10, atol=0.5)

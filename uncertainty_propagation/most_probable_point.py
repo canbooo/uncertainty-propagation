@@ -213,7 +213,7 @@ def find_most_probable_boundary_points(
     if n_starts > 1:
         designer = orthogonal_sampling.OrthogonalSamplingDesigner()
         additional = designer.design(
-            variable.ParameterSpace([stats.uniform(-1, 2) for _ in range(n_dim)]),
+            variable.ParameterSpace([stats.uniform(-2, 4) for _ in range(n_dim)]),
             n_starts - 1,
             steps=1,
         )
