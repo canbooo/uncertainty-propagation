@@ -1,5 +1,4 @@
 import abc
-import logging
 import os
 from typing import Any, Callable, Type
 
@@ -12,20 +11,12 @@ from uncertainty_propagation import transform
 
 class ProbabilityIntegrator(abc.ABC):
     use_standard_normal_space: bool = True
-    use_multiprocessing: bool = False
 
     def __init__(
         self,
         transformer_cls: Type[transform.StandardNormalTransformer] | None = None,
-        n_jobs: int | None = None,
     ) -> None:
         self.transformer_cls = transformer_cls
-        if self.use_multiprocessing and n_jobs is not None:
-            logging.warning(
-                f"Multiprocessing is not used by {self.__class__} and"
-                f"n_jobs does not have an effect."
-            )
-        self.n_jobs = n_jobs
 
     def calculate_probability(
         self,
@@ -72,7 +63,7 @@ class ProbabilityIntegrator(abc.ABC):
         space: variable.ParameterSpace,
         envelope: Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
         cache: bool = False,
-    ) -> tuple[float, float, tuple[np.ndarray, np.ndarray] | None]:
+    ) -> tuple[float, float, tuple[np.ndarray | None, np.ndarray | None]]:
         raise NotImplementedError
 
 

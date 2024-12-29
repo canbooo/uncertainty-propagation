@@ -69,11 +69,10 @@ class MonteCarloSimulation(integrator.ProbabilityIntegrator):
     Monte Carlo simulation for the probability integration. See Chapter 2.3.1 for equation references in this file
     https://hss-opus.ub.ruhr-uni-bochum.de/opus4/frontdoor/deliver/index/docId/9143/file/diss.pdf
 
-    See settings documentation for  further details.
+    See MonteCarloSimulatorSettings documentation for  further details.
     """
 
     use_standard_normal_space: bool = False
-    use_multiprocessing: bool = False
 
     def __init__(self, settings: MonteCarloSimulatorSettings):
         self.settings = settings
@@ -84,7 +83,7 @@ class MonteCarloSimulation(integrator.ProbabilityIntegrator):
         space: variable.ParameterSpace,
         envelope: Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
         cache: bool = False,
-    ) -> tuple[float, float, tuple[np.ndarray, np.ndarray] | None]:
+    ) -> tuple[float, float, tuple[np.ndarray | None, np.ndarray | None]]:
         total_samples = 0
         history_x, history_y = None, None
         probability = 0.0
