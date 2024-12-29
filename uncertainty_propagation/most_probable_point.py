@@ -1,4 +1,5 @@
 import dataclasses
+import os
 import warnings
 from typing import Callable, Type
 
@@ -113,10 +114,14 @@ def find_most_probable_boundary_points(
 
 @dataclasses.dataclass
 class FirstOrderApproximationSettings:
-    n_searches: int = 16
+    n_searches: int | None = None
     pooled: bool = True
     n_jobs: int = -1
     transformer_cls: Type[StandardNormalTransformer] | None = None
+
+    def __post_init__(self):
+        if self.n_searches is None:
+            self.n_searches = os.cpu_count()
 
 
 class FirstOrderApproximation(ProbabilityIntegrator):
