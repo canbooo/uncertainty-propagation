@@ -1,31 +1,44 @@
 import abc
-import logging
+import dataclasses
 import os
 from typing import Any, Callable, Type
 
 import joblib
 import numpy as np
 from experiment_design import variable
+from scipy import stats
 
 from uncertainty_propagation import transform
 
 
+@dataclasses.dataclass
+class IntegrationResult:
+    probability: float
+    standard_error: float
+    input_history: np.ndarray | None
+    output_history: np.ndarray | None
+
+    def __post_init__(self):
+        if (
+            self.input_history is not None
+            and self.output_history is not None
+            and self.input_history.shape[0] != self.output_history.shape[0]
+        ):
+            raise ValueError("Inconsistent shapes of input and output histories!")
+
+    @property
+    def safety_index(self) -> float:
+        return -stats.norm.ppf(self.probability)
+
+
 class ProbabilityIntegrator(abc.ABC):
     use_standard_normal_space: bool = True
-    use_multiprocessing: bool = False
 
     def __init__(
         self,
         transformer_cls: Type[transform.StandardNormalTransformer] | None = None,
-        n_jobs: int | None = None,
     ) -> None:
         self.transformer_cls = transformer_cls
-        if self.use_multiprocessing and n_jobs is not None:
-            logging.warning(
-                f"Multiprocessing is not used by {self.__class__} and"
-                f"n_jobs does not have an effect."
-            )
-        self.n_jobs = n_jobs
 
     def calculate_probability(
         self,
@@ -36,7 +49,7 @@ class ProbabilityIntegrator(abc.ABC):
         ),
         limit: int | float = 0,
         cache: bool = False,
-    ) -> tuple[float, float] | tuple[float, float, tuple[np.ndarray, np.ndarray]]:
+    ) -> IntegrationResult:
         """
         Given the parameter space and the function(s) to propagate through the uncertainty, computes the probability
         of exceeding the limit.
@@ -62,9 +75,12 @@ class ProbabilityIntegrator(abc.ABC):
         probability, std_error, cached = self._calculate_probability(
             space, envelope, cache
         )
-        if cache:
-            return probability, std_error, cached
-        return probability, std_error
+        return IntegrationResult(
+            probability=probability,
+            standard_error=std_error,
+            input_history=cached[0],
+            output_history=cached[1],
+        )
 
     @abc.abstractmethod
     def _calculate_probability(
@@ -72,7 +88,7 @@ class ProbabilityIntegrator(abc.ABC):
         space: variable.ParameterSpace,
         envelope: Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
         cache: bool = False,
-    ) -> tuple[float, float, tuple[np.ndarray, np.ndarray] | None]:
+    ) -> tuple[float, float, tuple[np.ndarray | None, np.ndarray | None]]:
         raise NotImplementedError
 
 

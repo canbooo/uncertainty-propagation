@@ -1,5 +1,8 @@
 """utils.py is almost always a code smell, but we accept it during development"""
 
+from typing import Callable, Sequence
+
+import joblib
 import numpy as np
 
 
@@ -22,3 +25,16 @@ def extend_cache(
     if cache_y:
         history_y = append_or_assign(history_y, new_y)
     return history_x, history_y
+
+
+def single_or_multiprocess(
+    sequence: Sequence, for_loop_body: Callable, n_jobs: int = 1
+) -> list:
+    if len(sequence) == 1 or n_jobs == 1:
+        results = []
+        for item in sequence:
+            results.append(for_loop_body(item))
+        return results
+    with joblib.Parallel(n_jobs=n_jobs) as para:
+        results = para(joblib.delayed(for_loop_body)(item) for item in sequence)
+    return results

@@ -69,22 +69,27 @@ class MonteCarloSimulation(integrator.ProbabilityIntegrator):
     Monte Carlo simulation for the probability integration. See Chapter 2.3.1 for equation references in this file
     https://hss-opus.ub.ruhr-uni-bochum.de/opus4/frontdoor/deliver/index/docId/9143/file/diss.pdf
 
-    See settings documentation for  further details.
+    See MonteCarloSimulatorSettings documentation for  further details.
+
+    Further references:
+    A. B. Owen (2013). "Monte Carlo theory, methods and examples"
+    https://artowen.su.domains/mc/
     """
 
     use_standard_normal_space: bool = False
-    use_multiprocessing: bool = False
 
-    def __init__(self, settings: MonteCarloSimulatorSettings):
+    def __init__(self, settings: MonteCarloSimulatorSettings | None = None):
+        if settings is None:
+            settings = MonteCarloSimulatorSettings()
         self.settings = settings
-        super().__init__()
+        super(MonteCarloSimulation, self).__init__()
 
     def _calculate_probability(
         self,
         space: variable.ParameterSpace,
         envelope: Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
         cache: bool = False,
-    ) -> tuple[float, float, tuple[np.ndarray, np.ndarray] | None]:
+    ) -> tuple[float, float, tuple[np.ndarray | None, np.ndarray | None]]:
         total_samples = 0
         history_x, history_y = None, None
         probability = 0.0
@@ -108,7 +113,7 @@ class MonteCarloSimulation(integrator.ProbabilityIntegrator):
                 cache_y=cache,
             )
             probability = probability * total_samples + (
-                self.settings.comparison(y_min, 0.0)
+                np.sum(self.settings.comparison(y_min, 0.0))
             )
             total_samples += batch_size
             probability /= total_samples
@@ -118,5 +123,5 @@ class MonteCarloSimulation(integrator.ProbabilityIntegrator):
                 )  # estimate CoV using 2.80 from
                 if cov <= self.settings.target_variation_coefficient:
                     break
-        std_err = probability * (1 - probability) / total_samples
+        std_err = np.sqrt(probability * (1 - probability) / total_samples)
         return probability, std_err, (history_x, history_y)
