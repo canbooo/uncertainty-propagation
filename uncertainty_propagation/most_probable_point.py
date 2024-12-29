@@ -1,11 +1,12 @@
 import dataclasses
 import os
 import warnings
-from typing import Callable, Type
+from typing import Any, Callable, Type
 
 import joblib
 import numpy as np
 from experiment_design import orthogonal_sampling, variable
+from experiment_design.experiment_designer import ExperimentDesigner
 from scipy import optimize, stats
 
 from uncertainty_propagation.integrator import ProbabilityIntegrator
@@ -58,7 +59,7 @@ def _find_mpp(
 
 
 def find_most_probable_boundary_points(
-    envelope: Callable[[np.ndarray], np.ndarray],
+    envelope: Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
     n_dim: int,
     n_starts: int = 12,
     n_jobs: int = -1,
@@ -71,6 +72,12 @@ def find_most_probable_boundary_points(
     :param n_jobs:
     :return: mpps and their objectives
     """
+
+    def optimization_envelope(x):
+        x = np.array(x)
+        if x.ndim < 2:
+            x = x.reshape((1, -1))
+        return envelope(x)[0]
 
     lim = 7
     bounds = [(-lim, lim) for _ in range(n_dim)]
@@ -87,7 +94,7 @@ def find_most_probable_boundary_points(
     mpps = []
     if n_jobs == 1 or n_starts == 1:
         for x_start in x_starts:
-            x_cur = _find_mpp(envelope, x_start, bounds=bounds)
+            x_cur = _find_mpp(optimization_envelope, x_start, bounds=bounds)
             if x_cur is None:
                 continue
             mpps.append(x_cur)
@@ -99,7 +106,9 @@ def find_most_probable_boundary_points(
 
     with joblib.Parallel(n_jobs=n_jobs) as para:
         mpps = para(
-            joblib.delayed(_find_mpp)(envelope, x_starts[i_st], bounds=bounds)
+            joblib.delayed(_find_mpp)(
+                optimization_envelope, x_starts[i_st], bounds=bounds
+            )
             for i_st in range(x_starts.shape[0])
         )
         mpps = [point for point in mpps if point is not None]
@@ -116,12 +125,12 @@ def find_most_probable_boundary_points(
 class FirstOrderApproximationSettings:
     n_searches: int | None = None
     pooled: bool = True
-    n_jobs: int = -1
+    n_jobs: int = os.cpu_count()
     transformer_cls: Type[StandardNormalTransformer] | None = None
 
     def __post_init__(self):
         if self.n_searches is None:
-            self.n_searches = os.cpu_count()
+            self.n_searches = self.n_jobs
 
 
 class FirstOrderApproximation(ProbabilityIntegrator):
@@ -157,15 +166,8 @@ class FirstOrderApproximation(ProbabilityIntegrator):
         cache: bool = False,
     ) -> tuple[float, float, tuple[np.ndarray | None, np.ndarray | None]]:
         """Currently, full caching is not available so we cache only the start and solution points"""
-
-        def optimization_envelope(x):
-            x = np.array(x)
-            if x.ndim < 2:
-                x = x.reshape((1, -1))
-            return envelope(x)[0]
-
         x_starts, mpps = find_most_probable_boundary_points(
-            optimization_envelope,
+            envelope,
             space.dimensions,
             n_starts=self.settings.n_searches,
             n_jobs=self.settings.n_jobs,
@@ -177,6 +179,9 @@ class FirstOrderApproximation(ProbabilityIntegrator):
         else:
             history_u = x_starts[[0]]
             _, history_x, history_y = envelope(history_u)
+
+        if mpps.shape[0] == 0:
+            return 0.0, 0.0, (history_x, history_y)
 
         # We depend on the fact that first sample in x_start is [0, 0, ...]
         factor = -1 if history_y[0] >= 0 else 1
@@ -191,3 +196,60 @@ class FirstOrderApproximation(ProbabilityIntegrator):
         std_dev = np.std(stats.norm.cdf(factor * safety_indexes), ddof=1)
         std_err = std_dev / np.sqrt(safety_indexes.shape[0])
         return probability, std_err, (history_x, history_y)
+
+
+@dataclasses.dataclass
+class ImportanceSamplingSettings:
+    n_searches: int | None = None
+    pooled: bool = True
+    n_jobs: int = os.cpu_count()
+    n_samples: int = 256
+    sample_generator: ExperimentDesigner = (
+        orthogonal_sampling.OrthogonalSamplingDesigner()
+    )
+    sample_generator_kwargs: dict[str, Any] = dataclasses.field(
+        default_factory=lambda: {"steps": 1}
+    )
+    transformer_cls: Type[StandardNormalTransformer] | None = None
+
+    def __post_init__(self):
+        if self.n_searches is None:
+            self.n_searches = self.n_jobs
+
+
+class ImportanceSampling(ProbabilityIntegrator):
+    """
+    Importance Sampling Procedure Using Design point
+
+    Importance sampling uses an auxilary distribution q* to estimate the
+    integral with lower variance compared to MC. ISPUD transforms the space
+    to the standard normal and uses MPP as the mean of q*, which is estimated
+    as a normal distribution with unit variance.
+
+    U. Bourgund (1986). "Importance Sampling Procedure Using Design Points, ISPUD: A User's Manual: An Efficient,
+    Accurate and Easy-to-use Multi-purpose Computer Code to Determine Structural Reliability"
+
+    A. Tabandeh et al. (2022). "A review and assessment of importance sampling methods for reliability analysis"
+
+    A. B. Owen (2013). "Monte Carlo theory, methods and examples"
+    https://artowen.su.domains/mc/
+    """
+
+    def __init__(self, settings: ImportanceSamplingSettings | None = None):
+        if settings is None:
+            settings = ImportanceSamplingSettings()
+        self.settings = settings
+        super(ImportanceSampling, self).__init__(self.settings.transformer_cls)
+
+    def _calculate_probability(
+        self,
+        space: variable.ParameterSpace,
+        envelope: Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
+        cache: bool = False,
+    ) -> tuple[float, float, tuple[np.ndarray | None, np.ndarray | None]]:
+        x_starts, mpps = find_most_probable_boundary_points(
+            envelope,
+            space.dimensions,
+            n_starts=self.settings.n_searches,
+            n_jobs=self.settings.n_jobs,
+        )
