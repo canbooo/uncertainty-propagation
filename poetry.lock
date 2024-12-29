@@ -49,13 +49,13 @@ test = ["pytest (>=6)"]
 
 [[package]]
 name = "experiment-design"
-version = "0.0.7"
+version = "0.0.8"
 description = "Tools to create designs of experiments"
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "experiment_design-0.0.7-py3-none-any.whl", hash = "sha256:52455dfcdfa0d8ff40dd58df1cbe9216417269be684a097680607294e3131b69"},
-    {file = "experiment_design-0.0.7.tar.gz", hash = "sha256:648a3af3afdc3da10a1b128d0c7aad00aa15e3c0de7945f7eb6336756151b0e8"},
+    {file = "experiment_design-0.0.8-py3-none-any.whl", hash = "sha256:303912207410fbb2f9196464eb13281bad5a851775ef1a18ee9c2f78ba5f3f8b"},
+    {file = "experiment_design-0.0.8.tar.gz", hash = "sha256:46eb825b4c6e169e0c057819ccf894df98c70f11153d0be7a932dba8cbc959b0"},
 ]
 
 [package.dependencies]
@@ -562,4 +562,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "ca7bf0d8cb58035d61b93cff860cbe63151282c52563f41f39b97baf31bfba86"
+content-hash = "5f2451723c39f8bdb8786cd056c47e1e5548ac0e9d697ba1cb59c900a8d185b7"
