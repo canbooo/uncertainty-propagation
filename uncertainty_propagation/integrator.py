@@ -1,7 +1,7 @@
 import abc
 import dataclasses
 import os
-from typing import Any, Callable, Type
+from typing import Callable, Type
 
 import joblib
 import numpy as np
@@ -127,14 +127,14 @@ def transform_to_zero_centered_envelope(
 
 
 def transform_to_standard_normal_envelope(
-    envelope: Callable[[np.ndarray], Any],
+    envelope: Callable[[np.ndarray], ...],
     transformer: transform.StandardNormalTransformer,
-) -> Callable[[np.ndarray], Any]:
+) -> Callable[[np.ndarray], ...]:
     """Given a function, construct a new one that accepts inputs from standard normal space and converts them to
     original space before passing them to the original function.
     """
 
-    def standard_normal_envelope(u: np.ndarray) -> Any:
+    def standard_normal_envelope(u: np.ndarray) -> ...:
         x = transformer.inverse_transform(u)
         return envelope(x)
 
@@ -142,12 +142,13 @@ def transform_to_standard_normal_envelope(
 
 
 def _parallel_processed_envelope(
-    envelope: Callable[[np.ndarray], Any], n_jobs: int | None
+    envelope: Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
+    n_jobs: int | None,
 ) -> Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]]:
     if n_jobs is None:
         n_jobs = os.cpu_count()
 
-    def parallel_envelope(x: np.ndarray):
+    def parallel_envelope(x: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         block_size, rem = divmod(x.shape[0], n_jobs)
         slices = [slice(i * block_size, (i + 1) * block_size) for i in range(n_jobs)]
         if rem > 0:

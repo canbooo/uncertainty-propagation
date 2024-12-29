@@ -4,7 +4,7 @@ https://hss-opus.ub.ruhr-uni-bochum.de/opus4/frontdoor/deliver/index/docId/9143/
 """
 
 import dataclasses
-from typing import Any, Callable
+from typing import Callable
 
 import numpy as np
 from experiment_design import random_sampling, variable
@@ -48,7 +48,7 @@ class MonteCarloSimulatorSettings:
     sample_generator: ExperimentDesigner = random_sampling.RandomSamplingDesigner(
         exact_correlation=False
     )
-    sample_generator_kwargs: dict[str, Any] = dataclasses.field(
+    sample_generator_kwargs: dict[str, ...] = dataclasses.field(
         default_factory=lambda: {"steps": 1}
     )
     comparison: Callable[[np.ndarray, float], np.ndarray] = np.less_equal

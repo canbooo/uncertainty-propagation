@@ -1,7 +1,7 @@
 import dataclasses
 import os
 import warnings
-from typing import Any, Callable, Type
+from typing import Callable, Type
 
 import numpy as np
 from experiment_design import orthogonal_sampling, variable
@@ -97,7 +97,7 @@ class ImportanceSamplingSettings:
     sample_generator: ExperimentDesigner = (
         orthogonal_sampling.OrthogonalSamplingDesigner()
     )
-    sample_generator_kwargs: dict[str, Any] = dataclasses.field(
+    sample_generator_kwargs: dict[str, ...] = dataclasses.field(
         default_factory=lambda: {"steps": 1}
     )
     transformer_cls: Type[StandardNormalTransformer] | None = None
@@ -239,7 +239,7 @@ def _importance_sample(
     mean: np.ndarray,
     sample_generator: ExperimentDesigner,
     n_sample: int,
-    sample_generator_kwargs: dict[str, Any] | None = None,
+    sample_generator_kwargs: dict[str, ...] | None = None,
     std_dev: float = 1.0,
     comparison: Callable[[np.ndarray, float], np.ndarray] = np.less_equal,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
