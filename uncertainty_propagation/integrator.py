@@ -1,4 +1,5 @@
 import abc
+import dataclasses
 import os
 from typing import Any, Callable, Type
 
@@ -7,6 +8,13 @@ import numpy as np
 from experiment_design import variable
 
 from uncertainty_propagation import transform
+
+
+@dataclasses.dataclass
+class IntegrationResult:
+    probability: float
+    standard_error: float
+    history: tuple[np.ndarray | None, np.ndarray | None]
 
 
 class ProbabilityIntegrator(abc.ABC):
@@ -27,7 +35,7 @@ class ProbabilityIntegrator(abc.ABC):
         ),
         limit: int | float = 0,
         cache: bool = False,
-    ) -> tuple[float, float] | tuple[float, float, tuple[np.ndarray, np.ndarray]]:
+    ) -> IntegrationResult:
         """
         Given the parameter space and the function(s) to propagate through the uncertainty, computes the probability
         of exceeding the limit.
@@ -53,9 +61,9 @@ class ProbabilityIntegrator(abc.ABC):
         probability, std_error, cached = self._calculate_probability(
             space, envelope, cache
         )
-        if cache:
-            return probability, std_error, cached
-        return probability, std_error
+        return IntegrationResult(
+            probability=probability, standard_error=std_error, history=cached
+        )
 
     @abc.abstractmethod
     def _calculate_probability(
