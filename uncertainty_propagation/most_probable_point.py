@@ -13,7 +13,7 @@ from uncertainty_propagation.transform import StandardNormalTransformer
 
 def _find_mpp(
     limit_state: Callable[[np.ndarray], np.ndarray], x_start: np.ndarray, bounds=None
-) -> tuple[np.ndarray, np.ndarray] | tuple[None, None]:
+) -> np.ndarray | None:
     """Get MPP using SLSQP and if that fails, use the slower cobyla"""
 
     def mpp_obj(x: np.ndarray) -> np.ndarray:
@@ -53,14 +53,14 @@ def _find_mpp(
     res = call_optimizer(method="COBYLA")
     if res.success:
         return res.get("x")
-    return None, None
+    return None
 
 
-def find_most_probable_points(
+def find_most_probable_boundary_points(
     envelope: Callable[[np.ndarray], np.ndarray],
     n_dim: int,
     n_starts: int = 12,
-    n_jobs: int = 2,
+    n_jobs: int = -1,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
 
@@ -90,23 +90,30 @@ def find_most_probable_points(
             if x_cur is None:
                 continue
             mpps.append(x_cur)
-        return x_starts, np.vstack(mpps)
+        if mpps:
+            mpps = np.vstack(mpps)
+        else:
+            mpps = np.empty((0, x_starts.shape[1]))
+        return x_starts, mpps
 
     with joblib.Parallel(n_jobs=n_jobs) as para:
         mpps = para(
-            joblib.delayed(_find_mpp)(
-                envelope, x_starts[[i_st]], bounds=bounds, give_vals=False
-            )
+            joblib.delayed(_find_mpp)(envelope, x_starts[i_st], bounds=bounds)
             for i_st in range(x_starts.shape[0])
         )
+        mpps = [point for point in mpps if point is not None]
+
+    if mpps:
         mpps = np.vstack(mpps)
+    else:
+        mpps = np.empty((0, x_starts.shape[1]))
 
     return x_starts, mpps
 
 
 @dataclasses.dataclass
 class FirstOrderApproximationSettings:
-    n_searches: int = 8
+    n_searches: int = 16
     pooled: bool = True
     n_jobs: int = -1
     transformer_cls: Type[StandardNormalTransformer] | None = None
@@ -125,7 +132,9 @@ class FirstOrderApproximation(ProbabilityIntegrator):
     use_multiprocessing: bool = True
     use_standard_normal_space: bool = True
 
-    def __init__(self, settings: FirstOrderApproximationSettings):
+    def __init__(self, settings: FirstOrderApproximationSettings | None = None):
+        if settings is None:
+            settings = FirstOrderApproximationSettings()
         self.settings = settings
         super(FirstOrderApproximation, self).__init__(self.settings.transformer_cls)
 
@@ -136,16 +145,37 @@ class FirstOrderApproximation(ProbabilityIntegrator):
         cache: bool = False,
     ) -> tuple[float, float, tuple[np.ndarray | None, np.ndarray | None]]:
         """Currently, full caching is not available so we cache only the start and solution points"""
-        x_starts, mpps = find_most_probable_points(
-            lambda x: envelope(x)[0],
+
+        def optimization_envelope(x):
+            x = np.array(x)
+            if x.ndim < 2:
+                x = x.reshape((1, -1))
+            return envelope(x)[0]
+
+        x_starts, mpps = find_most_probable_boundary_points(
+            optimization_envelope,
             space.dimensions,
             n_starts=self.settings.n_searches,
             n_jobs=self.settings.n_jobs,
         )
-        history_x, history_y = None, None
+
         if cache:
-            history_u = np.append(x_starts, mpps)
+            history_u = np.append(x_starts, mpps, axis=0)
             _, history_x, history_y = envelope(history_u)
+        else:
+            history_u = x_starts[[0]]
+            _, history_x, history_y = envelope(history_u)
+
+        # We depend on the fact that first sample in x_start is [0, 0, ...]
+        factor = -1 if history_y[0] >= 0 else 1
+
         safety_indexes = np.linalg.norm(mpps, axis=1)
-        fail_prob_mu = np.mean(stats.norm.cdf(-safety_indexes))
-        return fail_prob_mu, 0.0, (history_x, history_y)
+
+        if not self.settings.pooled:
+            probability = stats.norm.cdf(factor * np.min(safety_indexes))
+            return probability, 0.0, (history_x, history_y)
+
+        probability = stats.norm.cdf(factor * np.mean(safety_indexes))
+        std_dev = np.std(stats.norm.cdf(factor * safety_indexes), ddof=1)
+        std_err = std_dev / np.sqrt(safety_indexes.shape[0])
+        return probability, std_err, (history_x, history_y)
