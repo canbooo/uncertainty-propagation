@@ -2,9 +2,9 @@ import functools
 
 import numpy as np
 
+import uncertainty_propagation.monte_carlo as module_under_test
 from tests import reliability_test_functions
 from tests.shared_fixtures import *  # noqa: F403
-from uncertainty_propagation import monte_carlo as module_under_test
 
 
 class TestMonteCarloSimulation:

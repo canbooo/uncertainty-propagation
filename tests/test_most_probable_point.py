@@ -2,9 +2,9 @@ import functools
 
 import numpy as np
 
+import uncertainty_propagation.most_probable_point as module_under_test
 from tests import reliability_test_functions
 from tests.shared_fixtures import *  # noqa: F403
-from uncertainty_propagation import most_probable_point as module_under_test
 
 
 def test_test_find_most_probable_points():
