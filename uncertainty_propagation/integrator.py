@@ -1,9 +1,7 @@
 import abc
 import dataclasses
-import os
 from typing import Any, Callable, Type
 
-import joblib
 import numpy as np
 from experiment_design import variable
 from scipy import stats
@@ -139,25 +137,3 @@ def transform_to_standard_normal_envelope(
         return envelope(x)
 
     return standard_normal_envelope
-
-
-def _parallel_processed_envelope(
-    envelope: Callable[[np.ndarray], Any], n_jobs: int | None
-) -> Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]]:
-    if n_jobs is None:
-        n_jobs = os.cpu_count()
-
-    def parallel_envelope(x: np.ndarray):
-        block_size, rem = divmod(x.shape[0], n_jobs)
-        slices = [slice(i * block_size, (i + 1) * block_size) for i in range(n_jobs)]
-        if rem > 0:
-            slices.append(slice(n_jobs * block_size, None))
-        all_results = joblib.Parallel(n_jobs=n_jobs)(
-            joblib.delayed(envelope)(x[sli]) for sli in slices
-        )
-        result = np.hstack([r[0] for r in all_results])
-        x_ = np.vstack([r[1] for r in all_results])
-        y_ = np.vstack([r[2] for r in all_results])
-        return result, x_, y_
-
-    return parallel_envelope
