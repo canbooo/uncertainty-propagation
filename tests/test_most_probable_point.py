@@ -22,7 +22,7 @@ def test_test_find_most_probable_points():
     target_fun = reshaped(functools.partial(reliability_test_functions.linear, beta=6))
     for dim in [2, 10, 50]:
         starts, solutions = module_under_test.find_most_probable_boundary_points(
-            target_fun, n_dim=dim, n_starts=16, n_jobs=1
+            target_fun, n_dim=dim, n_search=16, n_jobs=1
         )
 
         assert starts.shape[0] == solutions.shape[0] == 16
@@ -31,7 +31,7 @@ def test_test_find_most_probable_points():
         assert np.isclose(np.sqrt(np.sum(solutions[0] ** 2)), 6)
 
     starts, solutions = module_under_test.find_most_probable_boundary_points(
-        target_fun, n_dim=2, n_starts=16, n_jobs=-1
+        target_fun, n_dim=2, n_search=16, n_jobs=-1
     )
 
     assert starts.shape[0] == solutions.shape[0] == 16
@@ -41,14 +41,14 @@ def test_test_find_most_probable_points():
 
     target_fun = reshaped(functools.partial(reliability_test_functions.linear, beta=12))
     starts, solutions = module_under_test.find_most_probable_boundary_points(
-        target_fun, n_dim=2, n_starts=16, n_jobs=1
+        target_fun, n_dim=2, n_search=16, n_jobs=1
     )
 
     assert solutions.shape[0] == 0
 
     target_fun = reshaped(functools.partial(reliability_test_functions.linear, beta=12))
     starts, solutions = module_under_test.find_most_probable_boundary_points(
-        target_fun, n_dim=2, n_starts=16, n_jobs=2
+        target_fun, n_dim=2, n_search=16, n_jobs=2
     )
 
     assert solutions.shape[0] == 0
