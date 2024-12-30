@@ -15,6 +15,19 @@ from uncertainty_propagation.utils import single_or_multiprocess
 
 @dataclasses.dataclass
 class FirstOrderApproximationSettings:
+    """
+    Settings for first order approximation or FORM
+
+    :param n_searches: Number of searches for the initial most probable boundary point search. If None (default), it
+    will be set to n_jobs.
+    :param pooled: If True (default), average distance of all found most probable boundary points will be used to
+    compute the probability, otherwise the smallest will be used.
+    :param n_jobs: Number of jobs for parallel computation. By default, use the number of cpu cores.
+    :param transformer_cls: Class to use for transforming the propagation function to standard normal space. Must follow,
+    StandardNormalTransformer protocol. If None (default), either InverseTransformSampler or NatafTransformer will be
+    used depending on if the ParameterSpace has a non-unity correlation matrix.
+    """
+
     n_searches: int | None = None
     pooled: bool = True
     n_jobs: int = os.cpu_count()
@@ -58,7 +71,7 @@ class FirstOrderApproximation(ProbabilityIntegrator):
         x_starts, mpps = find_most_probable_boundary_points(
             envelope,
             space.dimensions,
-            n_starts=self.settings.n_searches,
+            n_search=self.settings.n_searches,
             n_jobs=self.settings.n_jobs,
         )
 
@@ -90,6 +103,26 @@ class FirstOrderApproximation(ProbabilityIntegrator):
 
 @dataclasses.dataclass
 class ImportanceSamplingSettings:
+    """
+    Settings for importance sampling
+
+    :param n_searches: Number of searches for the initial most probable boundary point search. If None (default), it
+    will be set to n_jobs.
+    :param pooled: If True (default), importance sampling will be conducted at all found most probable boundary points.
+    Otherwise, the closest one will be selected.
+    :param n_jobs: Number of jobs for parallel computation. By default, use the number of cpu cores.
+    :param n_samples: Number of samples to generate at each used most probable boundary point. (Default=128)
+    :param sample_generator: ExperimentDesigner to generate samples from. (Default: OrthogonalSamplingDesigner)
+    :param sample_generator_kwargs: Any keyword arguments for the passed ExperimentDesigner. (Default = `{"steps": 1}`)
+    :param transformer_cls: Class to use for transforming the propagation function to standard normal space. Must follow,
+    StandardNormalTransformer protocol If None (default), either InverseTransformSampler or NatafTransformer will be
+    used depending on if the ParameterSpace has a non-unity correlation matrix.
+    :param comparison: Boolean-comparison operator. Should generally be either np.less or np.less_equal, depending on
+    if the calculated probability is defined as P(Y<y) or P(Y<=y). By default, it uses np.less_equal to match the
+    CDF definition but for reliability analysis use case, using np.less might be more appropriate. In reality, since
+    P(Y=y) = 0, this is not expected to have any effect. (Default=np.less_equal)
+    """
+
     n_searches: int | None = None
     pooled: bool = True
     n_jobs: int = os.cpu_count()
@@ -141,7 +174,7 @@ class ImportanceSampling(ProbabilityIntegrator):
         x_starts, mpps = find_most_probable_boundary_points(
             envelope,
             space.dimensions,
-            n_starts=self.settings.n_searches,
+            n_search=self.settings.n_searches,
             n_jobs=self.settings.n_jobs,
         )
 
@@ -189,15 +222,16 @@ class ImportanceSampling(ProbabilityIntegrator):
 def find_most_probable_boundary_points(
     envelope: Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
     n_dim: int,
-    n_starts: int = 12,
+    n_search: int = 12,
     n_jobs: int = -1,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
+    Find the zero-crossings that are closest to the origin.
 
-    :param envelope:
-    :param n_dim:
-    :param n_starts:
-    :param n_jobs:
+    :param envelope: The function to search for the zero-crossings
+    :param n_dim: number of dimensions
+    :param n_search: number of searches, i.e. restarts of the optimization from a different starting point (Default=12).
+    :param n_jobs: number of jobs to compute in parallel. If -1 (default), it will be equal to the number of cpus.
     :return: mpps and their objectives
     """
 
@@ -210,11 +244,11 @@ def find_most_probable_boundary_points(
     lim = 7
     bounds = [(-lim, lim) for _ in range(n_dim)]
     x_starts = np.zeros((1, n_dim))
-    if n_starts > 1:
+    if n_search > 1:
         designer = orthogonal_sampling.OrthogonalSamplingDesigner()
         additional = designer.design(
             variable.ParameterSpace([stats.uniform(-2, 4) for _ in range(n_dim)]),
-            n_starts - 1,
+            n_search - 1,
             steps=1,
         )
         x_starts = np.append(x_starts, additional, axis=0)

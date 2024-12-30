@@ -21,27 +21,27 @@ class MonteCarloSimulatorSettings:
     :param probability_tolerance: Defines the target accuracy of the estimated failure probability in terms
     of digit precision. This in combination with the target_variation_coefficient and chebyshev_confidence_level
     determines the number of samples used according to Eqs. 2.95 and 2.100. A smaller tolerance will require more
-    samples.
+    samples. (Default=1e-4)
     :param batch_size: Maximum number of samples to be calculated in one call. If <=0, all samples are calculated at
     once, Note that for larger number of samples, i.e. a smaller probability tolerance or target_variation_coefficient
-    memory errors are possible.
+    memory errors are possible. (Default=1_000_000)
     :param target_variation_coefficient: Target estimation coefficient of variation (Eq. 2.80). This in combination with
     the target_variation_coefficient and chebyshev_confidence_level determines the number of samples used according to
-    Eqs. 2.95 and 2.100. A smaller target variation coefficient will require more samples
+    Eqs. 2.95 and 2.100. A smaller target variation coefficient will require more samples. (Default=0.1)
     :param chebyshev_confidence_level: Confidence level of the Chebyshev inequality (Eq. 2.100). The number of total
-    samples are increased by (1 - chebyshev_confidence_level)**-1
-    :param early_stopping: If True, simulation may be interrupted before reaching the estimated sample limit, if the
-    estimated probability is larger than zero and the estimated variation_coefficient reaches the target.
-    :param sample_generator: ExperimentDesigner to generate samples from
-    :param sample_generator_kwargs: Any settings for the ExperimentDesigner
+    samples are increased by (1 - chebyshev_confidence_level)**-1. (Default=0)
+    :param early_stopping: If True (default), simulation may be interrupted before reaching the estimated sample limit,
+    if the estimated probability is larger than zero and the estimated variation_coefficient reaches the target.
+    :param sample_generator: ExperimentDesigner to generate samples from. (Default: RandomSamplingDesigner)
+    :param sample_generator_kwargs: Any keyword arguments for the pased ExperimentDesigner. (Default = `{"steps": 1}`)
     :param comparison: Boolean-comparison operator. Should generally be either np.less or np.less_equal, depending on
     if the calculated probability is defined as P(Y<y) or P(Y<=y). By default, it uses np.less_equal to match the
     CDF definition but for reliability analysis use case, using np.less might be more appropriate. In reality, since
-    P(Y=y) = 0, this is not expected to have any effect.
+    P(Y=y) = 0, this is not expected to have any effect. (Default=np.less_equal)
     """
 
     probability_tolerance: float = 1e-4
-    batch_size: int = 100_000
+    batch_size: int = 1_000_000
     target_variation_coefficient: float = 0.1
     chebyshev_confidence_level: float = 0  # Eq. 2.100
     early_stopping: bool = True
