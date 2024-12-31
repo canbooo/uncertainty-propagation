@@ -77,7 +77,7 @@ class TestMonteCarloSimulation:
         instance = self.get_instance(settings)
         result = instance.calculate_probability(
             std_norm_parameter_space,
-            functools.partial(reliability_test_functions.linear, beta=2),
+            functools.partial(reliability_test_functions.linear, beta=1),
             cache=True,
         )
 
