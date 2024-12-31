@@ -35,6 +35,9 @@ class DirectionalSimulatorSettings:
     n_directions: int | Callable[[int], int] | None = None
     min_samples_per_direction: int = 16
     direction_generator: DirectionGenerator = fekete_directions
+    direction_generator_kwargs: dict[str, Any] = dataclasses.field(
+        default_factory=lambda: {"max_steps_per_solution": 500}
+    )
     n_jobs: int = os.cpu_count()
     monotonic: bool = False
     transformer_cls: Type[StandardNormalTransformer] | None = None
@@ -49,7 +52,9 @@ class DirectionalSimulatorSettings:
                 n_directions = self.n_directions
             case _:
                 n_directions = self.n_directions(n_dimensions)
-        return self.direction_generator(n_directions, n_dimensions)
+        return self.direction_generator(
+            n_directions, n_dimensions, **self.direction_generator_kwargs
+        )
 
 
 class DirectionalSimulator(integrator.ProbabilityIntegrator):

@@ -71,7 +71,7 @@ def fekete_directions(
 def heuristic_fekete_solver(
     n_dir: int,
     n_dim: int,
-    max_steps: int = 1000,
+    max_steps: int = 500,
     convergence_tolerance: float = 1e-18,
     min_delta: float = 1e-12,
     seed: int = 0,
