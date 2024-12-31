@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from scipy.spatial import distance
 
-import uncertainty_propagation.directional_simulation.partitioning as module_under_test
+import uncertainty_propagation.directional_simulation.partitioners as module_under_test
 
 
 @pytest.fixture(params=[2, 5])
