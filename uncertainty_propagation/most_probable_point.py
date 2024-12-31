@@ -22,7 +22,8 @@ class FirstOrderApproximationSettings:
     will be set to n_jobs.
     :param pooled: If True (default), average distance of all found most probable boundary points will be used to
     compute the probability, otherwise the smallest will be used.
-    :param n_jobs: Number of jobs for parallel computation. By default, use the number of cpu cores.
+    :param n_jobs: Number of jobs for parallel computation for the most probable boundary point search. By default,
+    uses the number of cpu cores.
     :param transformer_cls: Class to use for transforming the propagation function to standard normal space. Must follow,
     StandardNormalTransformer protocol. If None (default), either InverseTransformSampler or NatafTransformer will be
     used depending on if the ParameterSpace has a non-unity correlation matrix.
@@ -108,17 +109,18 @@ class ImportanceSamplingSettings:
     will be set to n_jobs.
     :param pooled: If True (default), importance sampling will be conducted at all found most probable boundary points.
     Otherwise, the closest one will be selected.
-    :param n_jobs: Number of jobs for parallel computation. By default, use the number of cpu cores.
+    :param n_jobs: Number of jobs for parallel computation both for most probable boundary point search and for the
+    consequent sampling. By default, uses the number of cpu cores.
     :param n_samples: Number of samples to generate at each used most probable boundary point. (Default=128)
     :param sample_generator: ExperimentDesigner to generate samples from. (Default: OrthogonalSamplingDesigner)
     :param sample_generator_kwargs: Any keyword arguments for the passed ExperimentDesigner. (Default = `{"steps": 1}`)
     :param transformer_cls: Class to use for transforming the propagation function to standard normal space. Must follow,
     StandardNormalTransformer protocol If None (default), either InverseTransformSampler or NatafTransformer will be
     used depending on if the ParameterSpace has a non-unity correlation matrix.
-    :param comparison: Boolean-comparison operator. Should generally be either np.less or np.less_equal, depending on
-    if the calculated probability is defined as P(Y<y) or P(Y<=y). By default, it uses np.less_equal to match the
-    CDF definition but for reliability analysis use case, using np.less might be more appropriate. In reality, since
-    P(Y=y) = 0, this is not expected to have any effect. (Default=np.less_equal)
+    :param comparison: Boolean-comparison operator. Should generally be either `np.less` or `np.less_equal`, depending
+    on whether the calculated probability is defined as $P(Y<y)$ or $P(Y \leq y)$. By default, it uses `np.less_equal`
+    to match theCDF definition but for reliability analysis use case, using np.less might be more appropriate. In
+    reality, since $P(Y=y) = 0$ for continuous Y, this is not expected to have a significant effect.
     """
 
     n_searches: int | None = None

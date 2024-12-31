@@ -18,16 +18,27 @@ from uncertainty_propagation.transform import StandardNormalTransformer
 @dataclasses.dataclass
 class DirectionalSimulatorSettings:
     """
+    Settings for the directional simulation
 
-    :param probability_tolerance:
-    :param n_directions:
-    :param min_samples_per_direction:
-    :param direction_generator:
-    :param n_jobs:
-    :param monotonic:
-    :param transformer_cls:
-    :param zero_tolerance:
-    :param comparison:
+    :param probability_tolerance: Defines the target accuracy of the estimated failure probability in terms
+    of digit precision. (Default=1e-12)
+    :param n_directions: Number of directions to use. Can be a callable, that accepts the number of dimensions as inputs
+    and returns the number of directions to generate. If None (default), it will be set to `80 * space.dimensions`.
+    :param min_samples_per_direction: Number of samples to search for sign change in each direction. (Default=32)
+    :param direction_generator: Callable that takes number of directions and dimensions as input and returns direction
+    vectors with unit length.
+    :param n_jobs: Number of jobs for parallel computation of directional searches.
+    By default, uses the number of cpu cores.
+    :param monotonic: If True, search will terminate after finding the first zero crossing in each direction. Otherwise
+    (default), all zero-crossings within the relevant n-sphere as defined by the probability_tolerance will be sought.
+    :param transformer_cls: Class to use for transforming the propagation function to standard normal space. Must follow,
+    StandardNormalTransformer protocol. If None (default), either InverseTransformSampler or NatafTransformer will be
+    used depending on if the ParameterSpace has a non-unity correlation matrix.
+    :param zero_tolerance: Absolute tolerance to check whether a value is equal to 0. Used to determine zero-crossings.
+    :param comparison: Boolean-comparison operator. Should generally be either `np.less` or `np.less_equal`, depending
+    on whether the calculated probability is defined as $P(Y<y)$ or $P(Y \leq y)$. By default, it uses `np.less_equal`
+    to match the CDF definition but for reliability analysis use case, using np.less might be more appropriate. In
+    reality, since $P(Y=y) = 0$ for continuous $Y$, this is not expected to have a significant effect.
     :return:
     """
 
