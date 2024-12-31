@@ -26,7 +26,10 @@ class TestDirectionalSimulation:
         self, linear_beta, std_norm_parameter_space, std_norm_10d_parameter_space
     ):
         np.random.seed(1337)
-        instance = self.get_instance()
+        settings = module_under_test.DirectionalSimulatorSettings(
+            direction_generator_kwargs={"max_steps_per_solution": 20}
+        )
+        instance = self.get_instance(settings)
         for space in [std_norm_parameter_space, std_norm_10d_parameter_space]:
             fun = functools.partial(reliability_test_functions.linear, beta=linear_beta)
             result = instance.calculate_probability(space, fun)
@@ -52,7 +55,10 @@ class TestDirectionalSimulation:
         self, std_norm_parameter_space, std_norm_10d_parameter_space
     ):
         np.random.seed(1337)
-        instance = self.get_instance()
+        settings = module_under_test.DirectionalSimulatorSettings(
+            direction_generator_kwargs={"max_steps_per_solution": 20}
+        )
+        instance = self.get_instance(settings)
         for space in [std_norm_parameter_space, std_norm_10d_parameter_space]:
             result = instance.calculate_probability(
                 space, reliability_test_functions.styblinski_tang

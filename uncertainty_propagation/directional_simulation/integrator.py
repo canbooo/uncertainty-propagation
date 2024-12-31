@@ -33,7 +33,7 @@ class DirectionalSimulatorSettings:
 
     probability_tolerance: float = 1e-12
     n_directions: int | Callable[[int], int] | None = None
-    min_samples_per_direction: int = 16
+    min_samples_per_direction: int = 32
     direction_generator: DirectionGenerator = fekete_directions
     direction_generator_kwargs: dict[str, Any] = dataclasses.field(
         default_factory=lambda: {"max_steps_per_solution": 500}
