@@ -119,13 +119,30 @@ class TestFirstOrderApproximation:
         # increased tolerance due to multi-modality
         assert np.isclose(result.safety_index, 3.10, atol=1)
 
+    def test_cache(self, std_norm_parameter_space):
+        np.random.seed(1337)
+        settings = module_under_test.FirstOrderApproximationSettings(n_searches=4)
+        instance = self.get_instance(settings)
+        funs = [
+            reliability_test_functions.styblinski_tang,
+            functools.partial(reliability_test_functions.linear, beta=5),
+        ]
+        result = instance.calculate_probability(
+            std_norm_parameter_space, funs, cache=True
+        )
+        assert result.input_history is not None
+        assert result.output_history is not None
+        # 4 * 32 for each sampling + at least 8 evaluations for the mpp search
+        assert result.input_history.shape[0] > 8
+        assert result.output_history.shape[1] == 2
+
 
 class TestImportanceSampling:
     @staticmethod
     def get_instance(
-        settings: module_under_test.FirstOrderApproximationSettings | None = None,
-    ) -> module_under_test.FirstOrderApproximation:
-        return module_under_test.FirstOrderApproximation(settings)
+        settings: module_under_test.ImportanceSamplingSettings | None = None,
+    ) -> module_under_test.ImportanceSampling:
+        return module_under_test.ImportanceSampling(settings)
 
     def test_linear_std_norm(
         self, linear_beta, std_norm_parameter_space, std_norm_10d_parameter_space
@@ -162,20 +179,37 @@ class TestImportanceSampling:
 
     def test_styblinski_tang(self, std_norm_parameter_space):
         np.random.seed(1337)
-        settings = module_under_test.FirstOrderApproximationSettings(n_searches=32)
+        settings = module_under_test.ImportanceSamplingSettings(n_searches=32)
         instance = self.get_instance(settings)
         result = instance.calculate_probability(
             std_norm_parameter_space, reliability_test_functions.styblinski_tang
         )
-        # increased tolerance due to multi-modality
         assert np.isclose(result.safety_index, 3.64, atol=0.2)
 
     def test_modified_himmblau(self, std_norm_parameter_space):
         np.random.seed(1337)
-        settings = module_under_test.FirstOrderApproximationSettings(n_searches=32)
+        settings = module_under_test.ImportanceSamplingSettings(n_searches=32)
         instance = self.get_instance(settings)
         result = instance.calculate_probability(
             std_norm_parameter_space, reliability_test_functions.modified_himmblau
         )
-        # increased tolerance due to multi-modality
-        assert np.isclose(result.safety_index, 3.10, atol=0.5)
+        assert np.isclose(result.safety_index, 3.10, atol=0.2)
+
+    def test_cache(self, std_norm_parameter_space):
+        np.random.seed(1337)
+        settings = module_under_test.ImportanceSamplingSettings(
+            n_searches=4, n_samples=32, pooled=True
+        )
+        instance = self.get_instance(settings)
+        funs = [
+            reliability_test_functions.styblinski_tang,
+            functools.partial(reliability_test_functions.linear, beta=5),
+        ]
+        result = instance.calculate_probability(
+            std_norm_parameter_space, funs, cache=True
+        )
+        assert result.input_history is not None
+        assert result.output_history is not None
+        # 4 * 32 for each sampling + at least 8 evaluations for the mpp search
+        assert result.input_history.shape[0] > 4 * 34
+        assert result.output_history.shape[1] == 2
