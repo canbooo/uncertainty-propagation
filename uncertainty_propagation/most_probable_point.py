@@ -338,13 +338,19 @@ def _find_mpp(
     else:
         success = res.get("status") not in [5, 6] and res.success
         if success:
-            return res.get("x"), np.vstack(history_x), np.vstack(history_y)
+            history_x = np.array(history_x).reshape((-1, x_start.size))
+            history_y = np.array(history_y).reshape((history_x.shape[0], -1))
+            return res.get("x"), history_x, history_y
 
     constraints = (
         {"type": "ineq", "fun": optimization_envelope},
         {"type": "ineq", "fun": lambda x: -optimization_envelope(x)},
     )
     res = call_optimizer(method="COBYLA")
+
+    history_x = np.array(history_x).reshape((-1, x_start.size))
+    history_y = np.array(history_y).reshape((history_x.shape[0], -1))
+
     if res.success:
         return res.get("x"), np.vstack(history_x), np.vstack(history_y)
     return None, np.vstack(history_x), np.vstack(history_y)
