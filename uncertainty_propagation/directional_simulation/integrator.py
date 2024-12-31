@@ -24,19 +24,19 @@ class DirectionalSimulatorSettings:
     :param min_samples_per_direction:
     :param direction_generator:
     :param n_jobs:
-    :param non_monotonic:
+    :param monotonic:
     :param transformer_cls:
     :param zero_tolerance:
     :param comparison:
     :return:
     """
 
-    probability_tolerance: float = 1e-9
+    probability_tolerance: float = 1e-12
     n_directions: int | Callable[[int], int] | None = None
-    min_samples_per_direction: int = 32
+    min_samples_per_direction: int = 16
     direction_generator: DirectionGenerator = fekete_directions
     n_jobs: int = os.cpu_count()
-    non_monotonic: bool = True
+    monotonic: bool = False
     transformer_cls: Type[StandardNormalTransformer] | None = None
     zero_tolerance: float = 1e-16
     comparison: Callable[[np.ndarray, float], np.ndarray] = np.less_equal
@@ -90,7 +90,7 @@ class DirectionalSimulator(integrator.ProbabilityIntegrator):
             max_distance,
             self.settings.min_samples_per_direction,
         )
-        zero_is_included = bool(self.settings.comparison(0.0, 0.0))
+        zero_inclusive = bool(self.settings.comparison(np.zeros(1), 0.0))
 
         def for_loop_body(direction):
             return directional_probability(
@@ -98,9 +98,9 @@ class DirectionalSimulator(integrator.ProbabilityIntegrator):
                 direction.reshape((1, -1)),
                 search_grid,
                 center,
-                find_all=self.settings.non_monotonic,
+                find_all=not self.settings.monotonic,
                 zero_tol=self.settings.zero_tolerance,
-                zero_is_included=zero_is_included,
+                zero_inclusive=zero_inclusive,
             )
 
         results = utils.single_or_multiprocess(
@@ -118,6 +118,7 @@ class DirectionalSimulator(integrator.ProbabilityIntegrator):
                     cache_x=cache,
                     cache_y=cache,
                 )
+
         probability = float(np.mean(probabilities))
         std_err = np.std(probabilities, ddof=1) / np.sqrt(len(probabilities))
         return probability, std_err, (history_x, history_y)
@@ -130,7 +131,7 @@ def directional_probability(
     center: np.ndarray,
     find_all: bool = True,
     zero_tol: float = 1e-16,
-    zero_is_included: bool = False,
+    zero_inclusive: bool = False,
 ) -> tuple[float, np.ndarray, np.ndarray]:
     roots, history_x, history_y = find_sign_changes(
         envelope,
@@ -139,17 +140,24 @@ def directional_probability(
         center,
         find_all=find_all,
         zero_tol=zero_tol,
-        zero_is_included=zero_is_included,
+        zero_inclusive=zero_inclusive,
     )
+    roots = np.sort(roots)
+    roots = np.sign(roots) * roots**2  # to handle -infty
 
-    directional_probabilities = 1 - stats.chi2.cdf(
-        roots**2, df=direction.size
-    )  # Eq. 2.105
+    if center > zero_tol or (
+        np.isclose(center, 0, atol=zero_tol) and not zero_inclusive
+    ):
+        directional_probabilities = 1 - stats.chi2.cdf(
+            roots, df=direction.size
+        )  # Eq. 2.105
+    else:
+        directional_probabilities = stats.chi2.cdf(roots, df=direction.size)
     if directional_probabilities.shape[0] == 1:
         return float(directional_probabilities[0]), history_x, history_y
     signs = np.ones(directional_probabilities.shape)
     if np.isclose(center, 0, atol=zero_tol):
-        neg_slice = slice(0, None, 2) if zero_is_included else slice(1, None, 2)
+        neg_slice = slice(0, None, 2) if zero_inclusive else slice(1, None, 2)
     elif center > 0:
         neg_slice = slice(1, None, 2)
     else:
@@ -168,7 +176,7 @@ def find_sign_changes(
     center: np.ndarray,
     find_all: bool = True,
     zero_tol: float = 1e-16,
-    zero_is_included: bool = False,
+    zero_inclusive: bool = True,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
 
@@ -178,8 +186,7 @@ def find_sign_changes(
     :param center:
     :param find_all:
     :param zero_tol:
-    :param zero_is_included: If True, the probability is assumed to be P(X <= x). In terms of reliability analysis, this
-    means x=0 is unsafe.
+    :param zero_inclusive: True computes $P(X \leq x)$, i.e. x=0 is unsafe from a reliability point of view.
     :return:
     """
     history_x, history_y = [], []
@@ -192,8 +199,15 @@ def find_sign_changes(
         return result
 
     def reshaped_histories() -> tuple[np.ndarray, np.ndarray]:
-        hist_x = np.array(history_x).reshape((-1, direction.size))
-        hist_y = np.array(history_y).reshape((hist_x.shape[0], -1))
+        if not history_x:
+            return np.empty((0, direction.size)), np.empty((0, 1))
+        hist_x = history_x[0]
+        hist_y = history_y[0]
+        for cur_x, cur_y in zip(history_x[1:], history_y[1:]):
+            hist_x = np.append(hist_x, cur_x, axis=0)
+            hist_y = np.append(hist_y, cur_y, axis=0)
+        hist_x = hist_x.reshape((-1, direction.size))
+        hist_y = hist_y.reshape((hist_x.shape[0], -1))
         return hist_x, hist_y
 
     results = direction_envelope(search_grid)
@@ -202,15 +216,12 @@ def find_sign_changes(
 
     ids = np.where(np.logical_not(np.isclose(results, 0, atol=zero_tol)))[0]
 
-    no_solution = (
-        np.array([-float("inf")]) if zero_is_included else np.array([float("inf")])
-    )
     if ids.size == 0:
         history_x, history_y = reshaped_histories()
-        return no_solution, history_x, history_y
+        return np.array([float("inf")]), history_x, history_y
 
     roots = []
-    for next_id in range(max(0, int(ids[0]) - 1) + 1, results.shape[1]):
+    for next_id in range(max(0, int(ids[0]) - 1) + 1, len(results)):
         prev_id = next_id - 1
         sign_check = results[prev_id] * results[next_id]
         if sign_check > zero_tol:
@@ -232,10 +243,9 @@ def find_sign_changes(
             break
 
     if not roots:
-        if results[-1] > 0:
-            roots = np.array([float("inf")])
-        else:
-            roots = np.array([-float("inf")])
+        roots = np.array([float("inf")])
+        if np.isclose(center, 0.0, atol=zero_tol) and results[-1] < 0:
+            roots = np.array([float("-inf")])
 
     history_x, history_y = reshaped_histories()
     return np.array(roots), history_x, history_y

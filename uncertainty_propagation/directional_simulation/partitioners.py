@@ -57,7 +57,7 @@ def fekete_directions(
 
     def for_loop_body(seed):
         cur_dir = heuristic_fekete_solver(
-            n_dim, n_dir, max_steps_per_solution, convergence_tolerance, seed=seed
+            n_dir, n_dim, max_steps_per_solution, convergence_tolerance, seed=seed
         )
         cur_dist = np.min(distance.pdist(cur_dir, metric="cosine"))
         return cur_dist, cur_dir
@@ -65,7 +65,7 @@ def fekete_directions(
     seeds = stats.randint.rvs(69, 420_000_000, size=n_starts)
     results = utils.single_or_multiprocess(seeds, for_loop_body, n_jobs=n_jobs)
     # return result with the maximum min pairwise distance
-    return sorted(results)[-1][1]
+    return sorted(results, key=lambda x: x[0])[-1][1]
 
 
 def heuristic_fekete_solver(
@@ -137,7 +137,7 @@ def heuristic_fekete_solver(
     return base_points
 
 
-def fekete_solver(
+def iterative_fekete_solver(
     n_dir: int,
     n_dim: int,
     max_steps: int = 1000,
