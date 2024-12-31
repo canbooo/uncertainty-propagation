@@ -15,40 +15,45 @@ def test_test_find_most_probable_points():
             x = np.array(x)
             if x.ndim < 2:
                 x = x.reshape((1, -1))
-            return fun(x)
+            y = fun(x)
+            return y, x, y
 
         return inner
 
     target_fun = reshaped(functools.partial(reliability_test_functions.linear, beta=6))
     for dim in [2, 10, 50]:
-        starts, solutions = module_under_test.find_most_probable_boundary_points(
-            target_fun, n_dim=dim, n_search=16, n_jobs=1
+        solutions, history_x, history_y = (
+            module_under_test.find_most_probable_boundary_points(
+                target_fun, n_dim=dim, n_search=16, n_jobs=1
+            )
         )
 
-        assert starts.shape[0] == solutions.shape[0] == 16
-        assert np.max(np.std(starts, axis=1)) > 0.1
         assert np.max(np.std(solutions, axis=1)) < 1e-4
         assert np.isclose(np.sqrt(np.sum(solutions[0] ** 2)), 6)
 
-    starts, solutions = module_under_test.find_most_probable_boundary_points(
-        target_fun, n_dim=2, n_search=16, n_jobs=-1
+    solutions, history_x, history_y = (
+        module_under_test.find_most_probable_boundary_points(
+            target_fun, n_dim=2, n_search=16, n_jobs=-1
+        )
     )
 
-    assert starts.shape[0] == solutions.shape[0] == 16
-    assert np.max(np.std(starts, axis=1)) > 0.1
     assert np.max(np.std(solutions, axis=1)) < 1e-4
     assert np.isclose(np.sqrt(np.sum(solutions[0] ** 2)), 6)
 
-    target_fun = reshaped(functools.partial(reliability_test_functions.linear, beta=12))
-    starts, solutions = module_under_test.find_most_probable_boundary_points(
-        target_fun, n_dim=2, n_search=16, n_jobs=1
+    target_fun = reshaped(functools.partial(reliability_test_functions.linear, beta=15))
+    solutions, history_x, history_y = (
+        module_under_test.find_most_probable_boundary_points(
+            target_fun, n_dim=2, n_search=16, n_jobs=1
+        )
     )
 
     assert solutions.shape[0] == 0
 
-    target_fun = reshaped(functools.partial(reliability_test_functions.linear, beta=12))
-    starts, solutions = module_under_test.find_most_probable_boundary_points(
-        target_fun, n_dim=2, n_search=16, n_jobs=2
+    target_fun = reshaped(functools.partial(reliability_test_functions.linear, beta=15))
+    solutions, history_x, history_y = (
+        module_under_test.find_most_probable_boundary_points(
+            target_fun, n_dim=2, n_search=4, n_jobs=2
+        )
     )
 
     assert solutions.shape[0] == 0

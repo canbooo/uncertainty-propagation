@@ -8,9 +8,9 @@ from experiment_design import orthogonal_sampling, variable
 from experiment_design.experiment_designer import ExperimentDesigner
 from scipy import optimize, stats
 
+from uncertainty_propagation import utils
 from uncertainty_propagation.integrator import ProbabilityIntegrator
 from uncertainty_propagation.transform import StandardNormalTransformer
-from uncertainty_propagation.utils import single_or_multiprocess
 
 
 @dataclasses.dataclass
@@ -68,26 +68,25 @@ class FirstOrderApproximation(ProbabilityIntegrator):
         cache: bool = False,
     ) -> tuple[float, float, tuple[np.ndarray | None, np.ndarray | None]]:
         """Currently, full caching is not available so we cache only the start and solution points"""
-        x_starts, mpps = find_most_probable_boundary_points(
+        mpps, history_x, history_y = find_most_probable_boundary_points(
             envelope,
             space.dimensions,
             n_search=self.settings.n_searches,
             n_jobs=self.settings.n_jobs,
+            cache=True,
         )
 
-        history_x, history_y = None, None
-        if cache:
-            history_u = np.append(x_starts, mpps, axis=0)
-            _, history_x, history_y = envelope(history_u)
-        elif mpps.shape[0] > 0:
-            history_u = x_starts[[0]]
-            _, history_x, history_y = envelope(history_u)
+        center_point_id = np.argmin(np.abs(history_x).sum(1))
+        is_negative = history_y[center_point_id].min() < 0
+
+        if not cache:
+            history_x, history_y = None, None
 
         if mpps.shape[0] == 0:
             return 0.0, 0.0, (history_x, history_y)
 
         # We depend on the fact that first sample in x_start is [0, 0, ...]
-        factor = -1 if history_y[0] >= 0 else 1
+        factor = 1 if is_negative else -1
 
         safety_indexes = np.linalg.norm(mpps, axis=1)
 
@@ -171,20 +170,13 @@ class ImportanceSampling(ProbabilityIntegrator):
         envelope: Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
         cache: bool = False,
     ) -> tuple[float, float, tuple[np.ndarray | None, np.ndarray | None]]:
-        x_starts, mpps = find_most_probable_boundary_points(
+        mpps, history_x, history_y = find_most_probable_boundary_points(
             envelope,
             space.dimensions,
             n_search=self.settings.n_searches,
             n_jobs=self.settings.n_jobs,
+            cache=cache,
         )
-
-        history_x, history_y = None, None
-        if cache:
-            history_u = np.append(x_starts, mpps, axis=0)
-            _, history_x, history_y = envelope(history_u)
-        elif mpps.shape[0] > 0:
-            history_u = x_starts[[0]]
-            _, history_x, history_y = envelope(history_u)
 
         if mpps.shape[0] == 0:
             return 0.0, 0.0, (history_x, history_y)
@@ -204,15 +196,22 @@ class ImportanceSampling(ProbabilityIntegrator):
                 comparison=self.settings.comparison,
             )
 
-        results = single_or_multiprocess(mpps, for_loop_body, self.settings.n_jobs)
+        results = utils.single_or_multiprocess(
+            mpps, for_loop_body, self.settings.n_jobs
+        )
 
         probabilities = np.empty(0)
         for result in results:
             cur_probs, cur_hist_x, cur_hist_y = result
             probabilities = np.append(probabilities, cur_probs)
-            if cache:
-                history_x = np.append(history_x, cur_hist_x, axis=0)
-                history_y = np.append(history_y, cur_hist_y, axis=0)
+            history_x, history_y = utils.extend_cache(
+                history_x,
+                history_y,
+                cur_hist_x,
+                cur_hist_y,
+                cache_x=cache,
+                cache_y=cache,
+            )
 
         probability = probabilities.mean()
         std_err = np.std(probabilities, ddof=1) / np.sqrt(probabilities.shape[0])
@@ -224,7 +223,8 @@ def find_most_probable_boundary_points(
     n_dim: int,
     n_search: int = 12,
     n_jobs: int = -1,
-) -> tuple[np.ndarray, np.ndarray]:
+    cache: bool = False,
+) -> tuple[np.ndarray, np.ndarray | None, np.ndarray | None]:
     """
     Find the zero-crossings that are closest to the origin.
 
@@ -232,14 +232,9 @@ def find_most_probable_boundary_points(
     :param n_dim: number of dimensions
     :param n_search: number of searches, i.e. restarts of the optimization from a different starting point (Default=12).
     :param n_jobs: number of jobs to compute in parallel. If -1 (default), it will be equal to the number of cpus.
-    :return: mpps and their objectives
+    :param cache: If True (default), the history of inputs and outputs are returned as well
+    :return: mpps and the history of inputs and outputs if `cache=True`
     """
-
-    def optimization_envelope(x):
-        x = np.array(x)
-        if x.ndim < 2:
-            x = x.reshape((1, -1))
-        return envelope(x)[0]
 
     lim = 7
     bounds = [(-lim, lim) for _ in range(n_dim)]
@@ -254,16 +249,22 @@ def find_most_probable_boundary_points(
         x_starts = np.append(x_starts, additional, axis=0)
 
     def for_loop_body(x):
-        return _find_mpp(optimization_envelope, x, bounds=bounds)
+        return _find_mpp(envelope, x, bounds=bounds)
 
-    mpps = single_or_multiprocess(x_starts, for_loop_body, n_jobs=n_jobs)
-    mpps = [point for point in mpps if point is not None]
+    results = utils.single_or_multiprocess(x_starts, for_loop_body, n_jobs=n_jobs)
+    history_x, history_y, mpps = None, None, []
+    for result in results:
+        history_x, history_y = utils.extend_cache(
+            history_x, history_y, result[1], result[2], cache_x=cache, cache_y=cache
+        )
+        if result[0] is not None:
+            mpps.append(result[0])
 
     if mpps:
-        mpps = np.vstack(mpps)
+        mpps = np.array(mpps)
     else:
         mpps = np.empty((0, x_starts.shape[1]))
-    return x_starts, mpps
+    return mpps, history_x, history_y
 
 
 def _importance_sample(
@@ -292,9 +293,22 @@ def _importance_sample(
 
 
 def _find_mpp(
-    limit_state: Callable[[np.ndarray], np.ndarray], x_start: np.ndarray, bounds=None
-) -> np.ndarray | None:
+    envelope: Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
+    x_start: np.ndarray,
+    bounds=None,
+) -> tuple[np.ndarray | None, np.ndarray, np.ndarray]:
     """Get MPP using SLSQP and if that fails, use the slower cobyla"""
+
+    history_x, history_y = [], []
+
+    def optimization_envelope(x: np.ndarray) -> np.ndarray:
+        x = np.array(x)
+        if x.ndim < 2:
+            x = x.reshape((1, -1))
+        result, hist_x, hist_y = envelope(x)
+        history_x.append(hist_x)
+        history_y.append(hist_y)
+        return result
 
     def mpp_obj(x: np.ndarray) -> np.ndarray:
         return np.sum(x**2)
@@ -315,7 +329,7 @@ def _find_mpp(
                 bounds=bounds,
             )
 
-    constraints = {"type": "eq", "fun": limit_state}
+    constraints = {"type": "eq", "fun": optimization_envelope}
 
     try:
         res = call_optimizer(method="SLSQP")
@@ -324,13 +338,13 @@ def _find_mpp(
     else:
         success = res.get("status") not in [5, 6] and res.success
         if success:
-            return res.get("x")
+            return res.get("x"), np.vstack(history_x), np.vstack(history_y)
 
     constraints = (
-        {"type": "ineq", "fun": limit_state},
-        {"type": "ineq", "fun": lambda x: -limit_state(x)},
+        {"type": "ineq", "fun": optimization_envelope},
+        {"type": "ineq", "fun": lambda x: -optimization_envelope(x)},
     )
     res = call_optimizer(method="COBYLA")
     if res.success:
-        return res.get("x")
-    return None
+        return res.get("x"), np.vstack(history_x), np.vstack(history_y)
+    return None, np.vstack(history_x), np.vstack(history_y)
