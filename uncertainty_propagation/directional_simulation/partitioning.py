@@ -2,12 +2,17 @@ import functools
 import itertools
 import logging
 import warnings
+from typing import Protocol
 
 import numpy as np
 from scipy import stats
 from scipy.spatial import distance
 
 from uncertainty_propagation import utils
+
+
+class DirectionGenerator(Protocol):
+    def __call__(self, n_dir: int, n_dim: int) -> np.ndarray: ...
 
 
 def random_directions(n_dir: int, n_dim: int) -> np.ndarray:
