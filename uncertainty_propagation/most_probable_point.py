@@ -73,14 +73,13 @@ class FirstOrderApproximation(ProbabilityIntegrator):
             space.dimensions,
             n_search=self.settings.n_searches,
             n_jobs=self.settings.n_jobs,
-            cache=True,
+            cache=cache,
         )
 
-        center_point_id = np.argmin(np.abs(history_x).sum(1))
-        is_negative = history_y[center_point_id].min() < 0
-
-        if not cache:
-            history_x, history_y = None, None
+        # Although this is a recomputation, it is difficult to avoid
+        # as history_y alone is not sufficient to handle cases, where the passed limit to
+        # calculated probability is != 0. We do not reinsert it to the history.
+        is_negative = envelope(np.zeros((1, space.dimensions)))[0] < 0
 
         if mpps.shape[0] == 0:
             return 0.0, 0.0, (history_x, history_y)
