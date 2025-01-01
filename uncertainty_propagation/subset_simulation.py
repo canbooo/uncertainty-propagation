@@ -13,7 +13,7 @@ from uncertainty_propagation.transform import StandardNormalTransformer
 
 @dataclasses.dataclass
 class SubsetSimulationSettings:
-    max_subsets: int = 64
+    max_subsets: int = 16
     samples_per_chain: int = 1024
     min_subset_probability: float = 0.1
     covariate_correction: bool = True
