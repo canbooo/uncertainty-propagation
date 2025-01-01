@@ -43,6 +43,14 @@ class TestDirectionalSimulation:
         )
         assert np.isclose(result.probability, 0.0, atol=1e-16)
 
+    def test_quadratic_one(self, std_norm_parameter_space):
+        np.random.seed(1337)
+        instance = self.get_instance()
+        result = instance.calculate_probability(
+            std_norm_parameter_space, reliability_test_functions.quadratic_lesser
+        )
+        assert np.isclose(result.probability, 1.0)
+
     def test_linear_non_norm(self, linear_beta, non_norm_parameter_space):
         np.random.seed(1337)
         instance = self.get_instance()
