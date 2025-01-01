@@ -13,9 +13,8 @@ from uncertainty_propagation.transform import StandardNormalTransformer
 
 @dataclasses.dataclass
 class SubsetSimulationSettings:
-    probability_tolerance: float = 1e-9
     max_subsets: int = 64
-    n_samples_per_chain: int = 2048
+    samples_per_chain: int = 1024
     min_subset_probability: float = 0.1
     covariate_correction: bool = True
     mcmc_kwargs: dict[str, Any] = dataclasses.field(
@@ -54,7 +53,7 @@ class SubsetSimulation(ProbabilityIntegrator):
         sample_dists = [stats.norm() for _ in range(space.dimensions)]
         inputs = self.settings.sample_generator.design(
             variable.ParameterSpace(sample_dists),
-            self.settings.n_samples_per_chain,
+            self.settings.samples_per_chain,
             **self.settings.sample_generator_kwargs,
         )
         outputs, history_x, history_y = envelope(inputs)
@@ -62,7 +61,7 @@ class SubsetSimulation(ProbabilityIntegrator):
             history_x, history_y = None, None
         n_seeds = int(
             np.ceil(
-                self.settings.n_samples_per_chain * self.settings.min_subset_probability
+                self.settings.samples_per_chain * self.settings.min_subset_probability
             )
         )
         ids = _next_seed_ids(n_seeds, outputs)
@@ -76,7 +75,7 @@ class SubsetSimulation(ProbabilityIntegrator):
             return probability, std_err, (history_x, history_y)
 
         alphas = []
-        n_samples_per_subset = self.settings.n_samples_per_chain * n_seeds
+        n_samples_per_subset = self.settings.samples_per_chain * n_seeds
         probabilities = [np.mean(self.settings.comparison(outputs, current_limit))]
         deltas = [
             _subset_coefficient_of_variation(
@@ -90,7 +89,7 @@ class SubsetSimulation(ProbabilityIntegrator):
                     envelope,
                     inputs[ids],
                     outputs[ids],
-                    self.settings.n_samples_per_chain,
+                    self.settings.samples_per_chain,
                     current_limit,
                     lambda_iter=lambda_iter,
                     **self.settings.mcmc_kwargs,
@@ -99,11 +98,19 @@ class SubsetSimulation(ProbabilityIntegrator):
             history_x, history_y = utils.extend_cache(
                 history_x, history_y, hist_x, hist_y, cache_x=cache, cache_y=cache
             )
+
             ids = _next_seed_ids(n_seeds, outputs)
-            next_limit = max(float(outputs[ids[-1]]), 0.0)
-            indicators = self.settings.comparison(outputs, next_limit)
+            # We need to have indicators with the shape (samples, chains) so
+            # we do not assign the raveled version yet
+            next_limit = max(float(outputs.ravel()[ids[-1]]), 0.0)
+            indicators = np.asarray(
+                self.settings.comparison(outputs, next_limit), dtype=int
+            )
+            # Now that we have computed the indicator, we can ravel an assign them
+            inputs = inputs.reshape((-1, space.dimensions))
+            outputs = outputs.ravel()
+
             probabilities.append(indicators.mean())
-            # print(probabilities)
             if self.settings.covariate_correction:
                 # A. Abdollahi et al. (2020). "A refined subset simulation for reliability analysis using the subset
                 # control variate"
@@ -120,8 +127,6 @@ class SubsetSimulation(ProbabilityIntegrator):
                     probabilities[-1], n_samples_per_subset, gamma
                 )
             )
-            inputs = inputs[ids]
-            outputs = outputs[ids]
             if current_limit <= 0:
                 break
 
@@ -133,15 +138,18 @@ class SubsetSimulation(ProbabilityIntegrator):
             probability = np.prod(alphas) * probabilities[0]
         else:
             probability = np.prod(probabilities)
+
+        # Technically, std_dev and thus error should be smaller if covariate_correction is set to True so
+        # the following is an upper bound approximation at most
         std_dev = np.sum(deltas**2) * probability
         std_err = std_dev / np.sqrt(
-            i_subset * n_samples_per_subset + self.settings.n_samples_per_chain
+            i_subset * n_samples_per_subset + self.settings.samples_per_chain
         )
         return probability, std_err, (history_x, history_y)
 
 
 def _next_seed_ids(n_seeds: int, outputs: np.ndarray) -> np.ndarray:
-    return np.argsort(outputs)[:n_seeds]
+    return np.argsort(outputs, axis=None)[:n_seeds]
 
 
 def _subset_coefficient_of_variation(
@@ -153,12 +161,23 @@ def _subset_coefficient_of_variation(
     return np.inf
 
 
-def _correlation_factor_gamma(indicator: np.ndarray, n_seeds: int) -> float:
-    n_sample = indicator.size
-    samples_per_seed = n_sample // n_seeds
-    rho = signal.correlate(indicator, indicator)[1:samples_per_seed]
-    weights = 1 - np.arange(1, samples_per_seed) / samples_per_seed
-    return 2 * np.sum(weights * rho)
+def _correlation_factor_gamma(indicator: np.ndarray, probability: float) -> float:
+    """
+    S.K. Au and J. L. Beck (2001). "Estimation of small failure probabilities in high dimensions by subset
+    simulation"
+    """
+    samples_per_chain, n_chains = indicator.shape
+    samples = samples_per_chain * n_chains
+    # weird indexing coming from the definition of how signal.correlate computes lags
+    corr = signal.correlate(indicator, indicator)[samples_per_chain - 1 :, n_chains - 1]
+    corr = (
+        1 / (samples - np.arange(samples_per_chain) * n_chains) * corr - probability**2
+    )  # Eq. 29
+    rho = corr[1:] / corr[0]  # Eq. 25
+    gamma = 2 * np.sum(
+        (1 - np.arange(1, samples_per_chain) * n_chains / samples) * rho
+    )  # Eq. 28
+    return gamma
 
 
 def parallel_adaptive_conditional_sampling(
@@ -219,16 +238,16 @@ def parallel_adaptive_conditional_sampling(
     history_x, history_y = None, None
     for i_sample in range(n_samples_per_chain):
         # Step 3.b generate samples and decide whether to accept them
-        candidates = stats.norm(loc=rho * inputs[i_sample], scale=sigma)
+        candidates = stats.norm(loc=rho * inputs[i_sample], scale=sigma).rvs()
         candidate_outputs, hist_x, hist_y = envelope(candidates)
         history_x, history_y = utils.extend_cache(
             history_x, history_y, hist_x, hist_y, cache_x=True, cache_y=True
         )
         improvements = candidate_outputs <= limit_value
-        inputs[i_sample + 1, improvements] = np.where(
-            improvements, candidates, inputs[i_sample]
+        inputs[i_sample + 1] = np.where(
+            improvements.reshape((-1, 1)), candidates, inputs[i_sample]
         )
-        outputs[i_sample + 1, improvements] = np.where(
+        outputs[i_sample + 1] = np.where(
             improvements, candidate_outputs, outputs[i_sample]
         )
         accepts[i_sample + 1] = improvements
