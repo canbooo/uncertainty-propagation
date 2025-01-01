@@ -35,9 +35,10 @@ class MonteCarloSimulatorSettings:
     :param sample_generator: ExperimentDesigner to generate samples from. (Default: RandomSamplingDesigner)
     :param sample_generator_kwargs: Any keyword arguments for the pased ExperimentDesigner. (Default = `{"steps": 1}`)
     :param comparison: Boolean-comparison operator. Should generally be either `np.less` or `np.less_equal`, depending
-    on whether the calculated probability is defined as $P(Y<y)$ or $P(Y \leq y)$. By default, it uses `np.less_equal`
-    to match the CDF definition but for reliability analysis use case, using np.less might be more appropriate. In
-    reality, since $P(Y=y) = 0$ for continuous $Y$, this is not expected to have a significant effect.
+    on whether the calculated probability is defined as :math:`$P(Y<y)$` or :math:`$P(Y \leq y)$`. By default, it uses
+    `np.less_equal`to match the CDF definition but for reliability analysis use case, using `np.less` might be more
+    appropriate. In reality, since :math:`$P(Y=y) = 0$` for continuous Y, this is not expected to have a significant
+    effect.
     """
 
     probability_tolerance: float = 1e-4

@@ -85,7 +85,7 @@ def heuristic_fekete_solver(
     :param convergence_tolerance: Optimization tolerance for stagnation i.e. a lack of change in the results
     :param min_delta: minimum displacement of simulated particles
     :param seed: random seed that will be set before generating random initial points. Required to ensure randomness
-    is preserved in multiprocessing setting, where different seeds for each process must be passed.
+        is preserved in multiprocessing setting, where different seeds for each process must be passed.
     :return: Array of directions with shape (n_dir, n_dim), where each direction has the length 1
     """
     np.random.seed(seed)
