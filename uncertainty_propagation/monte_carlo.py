@@ -14,7 +14,7 @@ from uncertainty_propagation import integrator, utils
 
 
 @dataclasses.dataclass
-class MonteCarloSimulatorSettings:
+class MonteCarloSimulationSettings:
     """
     Settings for Monte-Carlo simulation
 
@@ -81,9 +81,9 @@ class MonteCarloSimulation(integrator.ProbabilityIntegrator):
 
     use_standard_normal_space: bool = False
 
-    def __init__(self, settings: MonteCarloSimulatorSettings | None = None) -> None:
+    def __init__(self, settings: MonteCarloSimulationSettings | None = None) -> None:
         if settings is None:
-            settings = MonteCarloSimulatorSettings()
+            settings = MonteCarloSimulationSettings()
         self.settings = settings
         super(MonteCarloSimulation, self).__init__()
 

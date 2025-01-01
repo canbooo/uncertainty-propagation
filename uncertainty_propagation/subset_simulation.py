@@ -12,7 +12,7 @@ from uncertainty_propagation.transform import StandardNormalTransformer
 
 
 @dataclasses.dataclass
-class SubsetSimulatorSettings:
+class SubsetSimulationSettings:
     probability_tolerance: float = 1e-9
     max_subsets: int = 64
     n_samples_per_chain: int = 2048
@@ -33,17 +33,17 @@ class SubsetSimulatorSettings:
     ] = np.less_equal
 
 
-class SubsetSimulator(ProbabilityIntegrator):
+class SubsetSimulation(ProbabilityIntegrator):
     """
     Subset simulation for probability computation. Equations numbers in comments refer to equations from the paper:
     I. Papaioannou et al. (2015). "MCMC algorithms for Subset Simulation"
     """
 
-    def __init__(self, settings: SubsetSimulatorSettings | None = None) -> None:
+    def __init__(self, settings: SubsetSimulationSettings | None = None) -> None:
         if settings is None:
-            settings = SubsetSimulatorSettings()
+            settings = SubsetSimulationSettings()
         self.settings = settings
-        super(SubsetSimulator, self).__init__(self.settings.transformer_cls)
+        super(SubsetSimulation, self).__init__(self.settings.transformer_cls)
 
     def _calculate_probability(
         self,

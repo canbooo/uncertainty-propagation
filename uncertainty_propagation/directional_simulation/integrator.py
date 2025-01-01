@@ -16,7 +16,7 @@ from uncertainty_propagation.transform import StandardNormalTransformer
 
 
 @dataclasses.dataclass
-class DirectionalSimulatorSettings:
+class DirectionalSimulationSettings:
     """
      Settings for the directional simulation
 
@@ -71,7 +71,7 @@ class DirectionalSimulatorSettings:
         )
 
 
-class DirectionalSimulator(integrator.ProbabilityIntegrator):
+class DirectionalSimulation(integrator.ProbabilityIntegrator):
     """
     Directional simulation for the probability integration. See Chapter 2.3.2 for equation references in this file
     https://hss-opus.ub.ruhr-uni-bochum.de/opus4/frontdoor/deliver/index/docId/9143/file/diss.pdf
@@ -86,11 +86,11 @@ class DirectionalSimulator(integrator.ProbabilityIntegrator):
 
     """
 
-    def __init__(self, settings: DirectionalSimulatorSettings | None = None) -> None:
+    def __init__(self, settings: DirectionalSimulationSettings | None = None) -> None:
         if settings is None:
-            settings = DirectionalSimulatorSettings()
+            settings = DirectionalSimulationSettings()
         self.settings = settings
-        super(DirectionalSimulator, self).__init__(self.settings.transformer_cls)
+        super(DirectionalSimulation, self).__init__(self.settings.transformer_cls)
 
     def _calculate_probability(
         self,

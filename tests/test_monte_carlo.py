@@ -10,7 +10,7 @@ from tests.shared_fixtures import *  # noqa: F403
 class TestMonteCarloSimulation:
     @staticmethod
     def get_instance(
-        settings: module_under_test.MonteCarloSimulatorSettings | None = None,
+        settings: module_under_test.MonteCarloSimulationSettings | None = None,
     ) -> module_under_test.MonteCarloSimulation:
         return module_under_test.MonteCarloSimulation(settings)
 
@@ -69,7 +69,7 @@ class TestMonteCarloSimulation:
         assert np.isclose(result.safety_index, 1.45, atol=1e-1)
 
     def test_settings(self, std_norm_parameter_space):
-        settings = module_under_test.MonteCarloSimulatorSettings(
+        settings = module_under_test.MonteCarloSimulationSettings(
             target_variation_coefficient=0.1,
             early_stopping=True,
         )
@@ -82,7 +82,7 @@ class TestMonteCarloSimulation:
 
         assert result.input_history.shape[0] < settings.sample_limit
 
-        settings = module_under_test.MonteCarloSimulatorSettings(
+        settings = module_under_test.MonteCarloSimulationSettings(
             probability_tolerance=1e-2,
             target_variation_coefficient=0.1,
             early_stopping=False,
@@ -97,7 +97,7 @@ class TestMonteCarloSimulation:
 
         max_samples_wo_chebyshev = settings.sample_limit
 
-        settings = module_under_test.MonteCarloSimulatorSettings(
+        settings = module_under_test.MonteCarloSimulationSettings(
             probability_tolerance=1e-2,
             target_variation_coefficient=0.1,
             early_stopping=False,
