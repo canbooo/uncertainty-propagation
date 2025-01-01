@@ -2,23 +2,34 @@ import functools
 
 import numpy as np
 
-import uncertainty_propagation.monte_carlo as module_under_test
+import uncertainty_propagation.directional_simulation.integrator as module_under_test
 from tests import reliability_test_functions
 from tests.shared_fixtures import *  # noqa: F403
 
 
-class TestMonteCarloSimulation:
+class TestDirectionalSimulation:
     @staticmethod
     def get_instance(
-        settings: module_under_test.MonteCarloSimulatorSettings | None = None,
-    ) -> module_under_test.MonteCarloSimulation:
-        return module_under_test.MonteCarloSimulation(settings)
+        settings: module_under_test.DirectionalSimulatorSettings | None = None,
+    ) -> module_under_test.DirectionalSimulator:
+        return module_under_test.DirectionalSimulator(settings)
+
+    def test_single_proc(self, std_norm_parameter_space):
+        np.random.seed(1337)
+        settings = module_under_test.DirectionalSimulatorSettings(n_jobs=1)
+        instance = self.get_instance(settings)
+        fun = functools.partial(reliability_test_functions.linear, beta=3)
+        result = instance.calculate_probability(std_norm_parameter_space, fun)
+        assert np.isclose(result.safety_index, 3, atol=1e-1)
 
     def test_linear_std_norm(
         self, linear_beta, std_norm_parameter_space, std_norm_10d_parameter_space
     ):
         np.random.seed(1337)
-        instance = self.get_instance()
+        settings = module_under_test.DirectionalSimulatorSettings(
+            direction_generator_kwargs={"max_steps_per_solution": 20}
+        )
+        instance = self.get_instance(settings)
         for space in [std_norm_parameter_space, std_norm_10d_parameter_space]:
             fun = functools.partial(reliability_test_functions.linear, beta=linear_beta)
             result = instance.calculate_probability(space, fun)
@@ -44,7 +55,10 @@ class TestMonteCarloSimulation:
         self, std_norm_parameter_space, std_norm_10d_parameter_space
     ):
         np.random.seed(1337)
-        instance = self.get_instance()
+        settings = module_under_test.DirectionalSimulatorSettings(
+            direction_generator_kwargs={"max_steps_per_solution": 20}
+        )
+        instance = self.get_instance(settings)
         for space in [std_norm_parameter_space, std_norm_10d_parameter_space]:
             result = instance.calculate_probability(
                 space, reliability_test_functions.styblinski_tang
@@ -69,39 +83,8 @@ class TestMonteCarloSimulation:
         assert np.isclose(result.safety_index, 1.45, atol=1e-1)
 
     def test_settings(self, std_norm_parameter_space):
-        settings = module_under_test.MonteCarloSimulatorSettings(
-            target_variation_coefficient=0.1,
-            early_stopping=True,
-        )
-        instance = self.get_instance(settings)
-        result = instance.calculate_probability(
-            std_norm_parameter_space,
-            functools.partial(reliability_test_functions.linear, beta=1),
-            cache=True,
-        )
-
-        assert result.input_history.shape[0] < settings.sample_limit
-
-        settings = module_under_test.MonteCarloSimulatorSettings(
-            probability_tolerance=1e-2,
-            target_variation_coefficient=0.1,
-            early_stopping=False,
-        )
-        instance = self.get_instance(settings)
-        result = instance.calculate_probability(
-            std_norm_parameter_space,
-            functools.partial(reliability_test_functions.linear, beta=2),
-            cache=True,
-        )
-        assert result.input_history.shape[0] == settings.sample_limit
-
-        max_samples_wo_chebyshev = settings.sample_limit
-
-        settings = module_under_test.MonteCarloSimulatorSettings(
-            probability_tolerance=1e-2,
-            target_variation_coefficient=0.1,
-            early_stopping=False,
-            chebyshev_confidence_level=0.9,
+        settings = module_under_test.DirectionalSimulatorSettings(
+            probability_tolerance=1e-9, n_directions=80
         )
         instance = self.get_instance(settings)
         result = instance.calculate_probability(
@@ -110,4 +93,7 @@ class TestMonteCarloSimulation:
             cache=True,
         )
 
-        assert result.input_history.shape[0] > max_samples_wo_chebyshev
+        assert (
+            result.input_history.shape[0]
+            > settings.n_directions * settings.min_samples_per_direction
+        )

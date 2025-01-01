@@ -1,6 +1,6 @@
 """utils.py is almost always a code smell, but we accept it during development"""
 
-from typing import Callable, Sequence
+from typing import Any, Callable, Sequence
 
 import joblib
 import numpy as np
@@ -28,7 +28,7 @@ def extend_cache(
 
 
 def single_or_multiprocess(
-    sequence: Sequence, for_loop_body: Callable, n_jobs: int = 1
+    sequence: Sequence, for_loop_body: Callable[[Any], Any], n_jobs: int = 1
 ) -> list:
     if len(sequence) == 1 or n_jobs == 1:
         results = []

@@ -1,9 +1,7 @@
 import abc
 import dataclasses
-import os
 from typing import Any, Callable, Type
 
-import joblib
 import numpy as np
 from experiment_design import variable
 from scipy import stats
@@ -56,16 +54,16 @@ class ProbabilityIntegrator(abc.ABC):
 
         :param space: Parameter space describing the uncertainty of parameters
         :param propagate_through: Function(s) to propagate the uncertainty of the inputs that will be evaluated.
-        In case multiple functions are passed as propagate_through, this computation will consider the lower envelope,
-        i.e. the minimum of all functions, thus yielding a series system in reliability engineering use case. If you
-        want to compute individual failure probabilities to, e.g. to simulate a parallel system, you need to call
-        this method with each function separately and take the minimum of the probabilities afterward.
-        :param cache: if True, track the used samples and the corresponding outputs. The outputs belong to the
-        used envelope and the individual outputs are not tracked.
-        :param limit: the CDF of the ParameterSpace will be evaluated at this value
+            In case multiple functions are passed as propagate_through, the lower envelope, i.e. the minimum of all
+            functions, is evaluated, yielding a series system in reliability engineering use case. If individual failure
+            probabilities are required to, e.g. to simulate a parallel system, this method needs to be called with each
+            function separately and take the minimum of the probabilities afterward.
+        :param cache: If True, track the used samples and the corresponding outputs. The outputs belong to the
+            used envelope and the individual outputs are not tracked.
+        :param limit: the CDF of the ParameterSpace will be evaluated at this value.
 
         :return: estimated probability and the standard error of the estimate as well as arrays of evaluated inputs
-        and the corresponding outputs if `cache=True`.
+            and the corresponding outputs if `cache=True`.
         """
         envelope = transform_to_zero_centered_envelope(propagate_through, limit)
         if self.use_standard_normal_space:
@@ -109,7 +107,8 @@ def transform_to_zero_centered_envelope(
     ),
     limit: int | float,
 ) -> Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]]:
-    """Given function(s) to propagate through the uncertainty, center their lower envelope to limit, i.e. if
+    """
+    Given function(s) to propagate through the uncertainty, center their lower envelope to limit, i.e. if
     the min(func(x) for func in propagate_through) is equal to limit, envelope(x) is equal to 0.
     """
     if not isinstance(propagate_through, list):
@@ -130,7 +129,8 @@ def transform_to_standard_normal_envelope(
     envelope: Callable[[np.ndarray], Any],
     transformer: transform.StandardNormalTransformer,
 ) -> Callable[[np.ndarray], Any]:
-    """Given a function, construct a new one that accepts inputs from standard normal space and converts them to
+    """
+    Given a function, construct a new one that accepts inputs from standard normal space and converts them to
     original space before passing them to the original function.
     """
 
@@ -139,25 +139,3 @@ def transform_to_standard_normal_envelope(
         return envelope(x)
 
     return standard_normal_envelope
-
-
-def _parallel_processed_envelope(
-    envelope: Callable[[np.ndarray], Any], n_jobs: int | None
-) -> Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]]:
-    if n_jobs is None:
-        n_jobs = os.cpu_count()
-
-    def parallel_envelope(x: np.ndarray):
-        block_size, rem = divmod(x.shape[0], n_jobs)
-        slices = [slice(i * block_size, (i + 1) * block_size) for i in range(n_jobs)]
-        if rem > 0:
-            slices.append(slice(n_jobs * block_size, None))
-        all_results = joblib.Parallel(n_jobs=n_jobs)(
-            joblib.delayed(envelope)(x[sli]) for sli in slices
-        )
-        result = np.hstack([r[0] for r in all_results])
-        x_ = np.vstack([r[1] for r in all_results])
-        y_ = np.vstack([r[2] for r in all_results])
-        return result, x_, y_
-
-    return parallel_envelope

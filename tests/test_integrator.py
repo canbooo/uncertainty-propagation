@@ -4,7 +4,7 @@ import joblib
 import numpy as np
 import pytest
 
-from uncertainty_propagation import integrator as module_under_test
+import uncertainty_propagation.integrator as module_under_test
 
 
 def valid_base_function_1(x: np.ndarray) -> np.ndarray:
