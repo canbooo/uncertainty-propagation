@@ -27,12 +27,20 @@ class FirstOrderApproximationSettings:
     :param transformer_cls: Class to use for transforming the propagation function to standard normal space. Must follow,
     StandardNormalTransformer protocol. If None (default), either InverseTransformSampler or NatafTransformer will be
     used depending on if the ParameterSpace has a non-unity correlation matrix.
+    :param comparison: Boolean-comparison operator. Should generally be either `np.less` or `np.less_equal`, depending
+    on whether the calculated probability is defined as :math:`$P(Y<y)$` or :math:`$P(Y \leq y)$`. By default, it uses
+    `np.less_equal`to match the CDF definition but for reliability analysis use case, using `np.less` might be more
+    appropriate. In reality, since :math:`$P(Y=y) = 0$` for continuous Y, this is not expected to have a significant
+    effect.
     """
 
     n_searches: int | None = None
     pooled: bool = True
     n_jobs: int = os.cpu_count()
     transformer_cls: Type[StandardNormalTransformer] | None = None
+    comparison: Callable[
+        [np.ndarray | float, np.ndarray | float], np.ndarray | float
+    ] = np.less_equal
 
     def __post_init__(self):
         if self.n_searches is None:
@@ -83,7 +91,10 @@ class FirstOrderApproximation(ProbabilityIntegrator):
         is_negative = envelope(np.zeros((1, space.dimensions)))[0] < 0
 
         if mpps.shape[0] == 0:
-            return 0.0, 0.0, (history_x, history_y)
+            # following is already in the history if caching is enabled
+            cur, _, _ = envelope(np.zeros((1, space.dimensions)))
+            probability = 1.0 if self.settings.comparison(cur, 0.0) else 0.0
+            return probability, 0.0, (history_x, history_y)
 
         # We depend on the fact that first sample in x_start is [0, 0, ...]
         factor = 1 if is_negative else -1
@@ -183,7 +194,10 @@ class ImportanceSampling(ProbabilityIntegrator):
         )
 
         if mpps.shape[0] == 0:
-            return 0.0, 0.0, (history_x, history_y)
+            # following is already in the history if caching is enabled
+            cur, _, _ = envelope(np.zeros((1, space.dimensions)))
+            probability = 1.0 if self.settings.comparison(cur, 0.0) else 0.0
+            return probability, 0.0, (history_x, history_y)
 
         if not self.settings.pooled:
             distances = np.linalg.norm(mpps, axis=1)
