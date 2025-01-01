@@ -70,7 +70,6 @@ class TestMonteCarloSimulation:
 
     def test_settings(self, std_norm_parameter_space):
         settings = module_under_test.MonteCarloSimulatorSettings(
-            probability_tolerance=1e-4,
             target_variation_coefficient=0.1,
             early_stopping=True,
         )

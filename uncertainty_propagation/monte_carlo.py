@@ -41,7 +41,7 @@ class MonteCarloSimulatorSettings:
     effect.
     """
 
-    probability_tolerance: float = 1e-4
+    probability_tolerance: float = 1e-5
     batch_size: int = 1_000_000
     target_variation_coefficient: float = 0.1
     chebyshev_confidence_level: float = 0  # Eq. 2.100
