@@ -16,7 +16,7 @@ from uncertainty_propagation.transform import StandardNormalTransformer
 
 
 @dataclasses.dataclass
-class DirectionalSimulatorSettings:
+class DirectionalSimulationSettings:
     """
      Settings for the directional simulation
 
@@ -54,7 +54,9 @@ class DirectionalSimulatorSettings:
     monotonic: bool = False
     transformer_cls: Type[StandardNormalTransformer] | None = None
     zero_tolerance: float = 1e-16
-    comparison: Callable[[np.ndarray, float], np.ndarray] = np.less_equal
+    comparison: Callable[
+        [np.ndarray | float, np.ndarray | float], np.ndarray | float
+    ] = np.less_equal
 
     def directions_for(self, n_dimensions: int) -> np.ndarray:
         match self.n_directions:
@@ -69,7 +71,7 @@ class DirectionalSimulatorSettings:
         )
 
 
-class DirectionalSimulator(integrator.ProbabilityIntegrator):
+class DirectionalSimulation(integrator.ProbabilityIntegrator):
     """
     Directional simulation for the probability integration. See Chapter 2.3.2 for equation references in this file
     https://hss-opus.ub.ruhr-uni-bochum.de/opus4/frontdoor/deliver/index/docId/9143/file/diss.pdf
@@ -84,11 +86,11 @@ class DirectionalSimulator(integrator.ProbabilityIntegrator):
 
     """
 
-    def __init__(self, settings: DirectionalSimulatorSettings | None = None):
+    def __init__(self, settings: DirectionalSimulationSettings | None = None) -> None:
         if settings is None:
-            settings = DirectionalSimulatorSettings()
+            settings = DirectionalSimulationSettings()
         self.settings = settings
-        super(DirectionalSimulator, self).__init__(self.settings.transformer_cls)
+        super(DirectionalSimulation, self).__init__(self.settings.transformer_cls)
 
     def _calculate_probability(
         self,
@@ -110,7 +112,7 @@ class DirectionalSimulator(integrator.ProbabilityIntegrator):
         zero_inclusive = bool(self.settings.comparison(np.zeros(1), 0.0))
 
         def for_loop_body(direction):
-            return directional_probability(
+            return _directional_probability(
                 envelope,
                 direction.reshape((1, -1)),
                 search_grid,
@@ -141,7 +143,7 @@ class DirectionalSimulator(integrator.ProbabilityIntegrator):
         return probability, std_err, (history_x, history_y)
 
 
-def directional_probability(
+def _directional_probability(
     envelope: Callable[[float | np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
     direction: np.ndarray,
     search_grid: np.ndarray,
@@ -150,14 +152,13 @@ def directional_probability(
     zero_tol: float = 1e-16,
     zero_inclusive: bool = False,
 ) -> tuple[float, np.ndarray, np.ndarray]:
-    roots, history_x, history_y = find_sign_changes(
+    roots, history_x, history_y = _find_sign_changes(
         envelope,
         direction,
         search_grid,
         center,
         find_all=find_all,
         zero_tol=zero_tol,
-        zero_inclusive=zero_inclusive,
     )
     roots = np.sort(roots)
     roots = np.sign(roots) * roots**2  # to handle -infty
@@ -186,26 +187,14 @@ def directional_probability(
     return total_directional_probability, history_x, history_y
 
 
-def find_sign_changes(
+def _find_sign_changes(
     envelope: Callable[[float | np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
     direction: np.ndarray,
     search_grid: np.ndarray,
     center: np.ndarray,
     find_all: bool = True,
     zero_tol: float = 1e-16,
-    zero_inclusive: bool = True,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-
-    :param envelope:
-    :param direction:
-    :param search_grid:
-    :param center:
-    :param find_all:
-    :param zero_tol:
-    :param zero_inclusive: True computes $P(X \leq x)$, i.e. x=0 is unsafe from a reliability point of view.
-    :return:
-    """
     history_x, history_y = [], []
 
     def direction_envelope(radius: float | np.ndarray) -> np.ndarray:

@@ -10,13 +10,13 @@ from tests.shared_fixtures import *  # noqa: F403
 class TestDirectionalSimulation:
     @staticmethod
     def get_instance(
-        settings: module_under_test.DirectionalSimulatorSettings | None = None,
-    ) -> module_under_test.DirectionalSimulator:
-        return module_under_test.DirectionalSimulator(settings)
+        settings: module_under_test.DirectionalSimulationSettings | None = None,
+    ) -> module_under_test.DirectionalSimulation:
+        return module_under_test.DirectionalSimulation(settings)
 
     def test_single_proc(self, std_norm_parameter_space):
         np.random.seed(1337)
-        settings = module_under_test.DirectionalSimulatorSettings(n_jobs=1)
+        settings = module_under_test.DirectionalSimulationSettings(n_jobs=1)
         instance = self.get_instance(settings)
         fun = functools.partial(reliability_test_functions.linear, beta=3)
         result = instance.calculate_probability(std_norm_parameter_space, fun)
@@ -26,7 +26,7 @@ class TestDirectionalSimulation:
         self, linear_beta, std_norm_parameter_space, std_norm_10d_parameter_space
     ):
         np.random.seed(1337)
-        settings = module_under_test.DirectionalSimulatorSettings(
+        settings = module_under_test.DirectionalSimulationSettings(
             direction_generator_kwargs={"max_steps_per_solution": 20}
         )
         instance = self.get_instance(settings)
@@ -34,6 +34,22 @@ class TestDirectionalSimulation:
             fun = functools.partial(reliability_test_functions.linear, beta=linear_beta)
             result = instance.calculate_probability(space, fun)
             assert np.isclose(result.safety_index, linear_beta, atol=1e-1)
+
+    def test_quadratic_zero(self, std_norm_parameter_space):
+        np.random.seed(1337)
+        instance = self.get_instance()
+        result = instance.calculate_probability(
+            std_norm_parameter_space, reliability_test_functions.quadratic_greater
+        )
+        assert np.isclose(result.probability, 0.0, atol=1e-16)
+
+    def test_quadratic_one(self, std_norm_parameter_space):
+        np.random.seed(1337)
+        instance = self.get_instance()
+        result = instance.calculate_probability(
+            std_norm_parameter_space, reliability_test_functions.quadratic_lesser
+        )
+        assert np.isclose(result.probability, 1.0)
 
     def test_linear_non_norm(self, linear_beta, non_norm_parameter_space):
         np.random.seed(1337)
@@ -55,7 +71,7 @@ class TestDirectionalSimulation:
         self, std_norm_parameter_space, std_norm_10d_parameter_space
     ):
         np.random.seed(1337)
-        settings = module_under_test.DirectionalSimulatorSettings(
+        settings = module_under_test.DirectionalSimulationSettings(
             direction_generator_kwargs={"max_steps_per_solution": 20}
         )
         instance = self.get_instance(settings)
@@ -83,7 +99,7 @@ class TestDirectionalSimulation:
         assert np.isclose(result.safety_index, 1.45, atol=1e-1)
 
     def test_settings(self, std_norm_parameter_space):
-        settings = module_under_test.DirectionalSimulatorSettings(
+        settings = module_under_test.DirectionalSimulationSettings(
             probability_tolerance=1e-9, n_directions=80
         )
         instance = self.get_instance(settings)

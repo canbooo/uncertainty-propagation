@@ -14,7 +14,7 @@ from uncertainty_propagation import integrator, utils
 
 
 @dataclasses.dataclass
-class MonteCarloSimulatorSettings:
+class MonteCarloSimulationSettings:
     """
     Settings for Monte-Carlo simulation
 
@@ -52,7 +52,9 @@ class MonteCarloSimulatorSettings:
     sample_generator_kwargs: dict[str, Any] = dataclasses.field(
         default_factory=lambda: {"steps": 1}
     )
-    comparison: Callable[[np.ndarray, float], np.ndarray] = np.less_equal
+    comparison: Callable[
+        [np.ndarray | float, np.ndarray | float], np.ndarray | float
+    ] = np.less_equal
     sample_limit: int = dataclasses.field(init=False)
 
     def __post_init__(self):
@@ -79,9 +81,9 @@ class MonteCarloSimulation(integrator.ProbabilityIntegrator):
 
     use_standard_normal_space: bool = False
 
-    def __init__(self, settings: MonteCarloSimulatorSettings | None = None):
+    def __init__(self, settings: MonteCarloSimulationSettings | None = None) -> None:
         if settings is None:
-            settings = MonteCarloSimulatorSettings()
+            settings = MonteCarloSimulationSettings()
         self.settings = settings
         super(MonteCarloSimulation, self).__init__()
 
