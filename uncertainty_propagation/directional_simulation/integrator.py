@@ -54,7 +54,9 @@ class DirectionalSimulatorSettings:
     monotonic: bool = False
     transformer_cls: Type[StandardNormalTransformer] | None = None
     zero_tolerance: float = 1e-16
-    comparison: Callable[[np.ndarray, float], np.ndarray] = np.less_equal
+    comparison: Callable[
+        [np.ndarray | float, np.ndarray | float], np.ndarray | float
+    ] = np.less_equal
 
     def directions_for(self, n_dimensions: int) -> np.ndarray:
         match self.n_directions:
@@ -84,7 +86,7 @@ class DirectionalSimulator(integrator.ProbabilityIntegrator):
 
     """
 
-    def __init__(self, settings: DirectionalSimulatorSettings | None = None):
+    def __init__(self, settings: DirectionalSimulatorSettings | None = None) -> None:
         if settings is None:
             settings = DirectionalSimulatorSettings()
         self.settings = settings

@@ -56,7 +56,7 @@ class FirstOrderApproximation(ProbabilityIntegrator):
     https://doi.org/10.1016/j.probengmech.2023.103479
     """
 
-    def __init__(self, settings: FirstOrderApproximationSettings | None = None):
+    def __init__(self, settings: FirstOrderApproximationSettings | None = None) -> None:
         if settings is None:
             settings = FirstOrderApproximationSettings()
         self.settings = settings
@@ -135,7 +135,9 @@ class ImportanceSamplingSettings:
         default_factory=lambda: {"steps": 1}
     )
     transformer_cls: Type[StandardNormalTransformer] | None = None
-    comparison: Callable[[np.ndarray, float], np.ndarray] = np.less_equal
+    comparison: Callable[
+        [np.ndarray | float, np.ndarray | float], np.ndarray | float
+    ] = np.less_equal
 
     def __post_init__(self):
         if self.n_searches is None:
@@ -160,7 +162,7 @@ class ImportanceSampling(ProbabilityIntegrator):
     https://artowen.su.domains/mc/
     """
 
-    def __init__(self, settings: ImportanceSamplingSettings | None = None):
+    def __init__(self, settings: ImportanceSamplingSettings | None = None) -> None:
         if settings is None:
             settings = ImportanceSamplingSettings()
         self.settings = settings
