@@ -127,7 +127,7 @@ class ImportanceSamplingSettings:
     n_searches: int | None = None
     pooled: bool = True
     n_jobs: int = os.cpu_count()
-    n_samples: int = 128
+    n_samples: int = 256
     sample_generator: ExperimentDesigner = (
         orthogonal_sampling.OrthogonalSamplingDesigner()
     )
