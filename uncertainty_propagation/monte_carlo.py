@@ -15,7 +15,7 @@ from uncertainty_propagation import integrator, utils
 
 @dataclasses.dataclass
 class MonteCarloSimulationSettings:
-    """
+    r"""
     Settings for Monte-Carlo simulation
 
     :param probability_tolerance: Defines the target accuracy of the estimated failure probability in terms
@@ -33,7 +33,7 @@ class MonteCarloSimulationSettings:
     :param early_stopping: If True (default), simulation may be interrupted before reaching the estimated sample limit,
     if the estimated probability is larger than zero and the estimated variation_coefficient reaches the target.
     :param sample_generator: ExperimentDesigner to generate samples from. (Default: RandomSamplingDesigner)
-    :param sample_generator_kwargs: Any keyword arguments for the pased ExperimentDesigner. (Default = `{"steps": 1}`)
+    :param sample_generator_kwargs: Any keyword arguments to pass to ExperimentDesigner. (Default = `{"steps": 1}`)
     :param comparison: Boolean-comparison operator. Should generally be either `np.less` or `np.less_equal`, depending
     on whether the calculated probability is defined as :math:`$P(Y<y)$` or :math:`$P(Y \leq y)$`. By default, it uses
     `np.less_equal`to match the CDF definition but for reliability analysis use case, using `np.less` might be more

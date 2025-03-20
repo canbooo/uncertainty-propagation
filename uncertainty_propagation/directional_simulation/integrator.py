@@ -17,7 +17,7 @@ from uncertainty_propagation.transform import StandardNormalTransformer
 
 @dataclasses.dataclass
 class DirectionalSimulationSettings:
-    """
+    r"""
      Settings for the directional simulation
 
     :param  probability_tolerance: Defines the target accuracy of the estimated failure probability in terms
