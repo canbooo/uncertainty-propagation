@@ -15,7 +15,7 @@ from uncertainty_propagation.transform import StandardNormalTransformer
 
 @dataclasses.dataclass
 class FirstOrderApproximationSettings:
-    """
+    r"""
     Settings for first order approximation or FORM
 
     :param n_searches: Number of searches for the initial most probable boundary point search. If None (default), it
@@ -48,13 +48,13 @@ class FirstOrderApproximationSettings:
 
 
 class FirstOrderApproximation(ProbabilityIntegrator):
-    """
+    r"""
     First order i.e. linear approximation of the propagated probability. In the context of reliability analysis,
     this method is knows as FORM.
 
-    Assumes P(Y <= y) = phi_inv(||x_mpp||) where phi_inv is the inverse of the
-    standard normal distribution and ||x_mpp|| is the distance to the most probable, i.e. closest point, with
-    f(x_mpp) = y in the standard normal space. See FirstOrderApproximationSettings docstring for further details.
+    Assumes :math:`P(Y \leq y) = \phi^{-1}(||x^*||)` where :math:`\phi^{-1}` is the inverse of the
+    standard normal distribution and :math:`||x^*||` is the distance to the most probable, i.e. closest point, with
+    :math:`f(x^*) = y` in the standard normal space. See FirstOrderApproximationSettings docstring for further details.
 
     A. M. Hasofer and N. Lind (1974). “Exact and Invariant Second Moment Code Format”
     https://www.researchgate.net/publication/243758427_An_Exact_and_Invariant_First_Order_Reliability_Format
@@ -113,7 +113,7 @@ class FirstOrderApproximation(ProbabilityIntegrator):
 
 @dataclasses.dataclass
 class ImportanceSamplingSettings:
-    """
+    r"""
     Settings for importance sampling
 
     :param n_searches: Number of searches for the initial most probable boundary point search. If None (default), it

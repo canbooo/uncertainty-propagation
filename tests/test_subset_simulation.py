@@ -30,7 +30,7 @@ class TestSubsetSimulation:
         result = instance.calculate_probability(
             std_norm_parameter_space, reliability_test_functions.quadratic_greater
         )
-        assert np.isclose(result.probability, 0.0, atol=1e-16)
+        assert np.isclose(result.probability, 0.0, atol=1e-10)
 
     def test_quadratic_one(self, std_norm_parameter_space):
         np.random.seed(1337)

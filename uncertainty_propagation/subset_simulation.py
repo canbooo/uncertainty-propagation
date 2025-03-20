@@ -190,7 +190,7 @@ def parallel_adaptive_conditional_sampling(
     initial_std_dev: float | None = None,
     adaptation_frequency: float = 0.1,
 ) -> tuple[np.ndarray, np.ndarray, float, np.ndarray, np.ndarray]:
-    """
+    r"""
     A trajectory parallelized implementation of adaptive conditional sampling. Equations numbers in comments refer
     to equations from the original paper:
     I. Papaioannou et al. (2015). "MCMC algorithms for Subset Simulation"
@@ -202,7 +202,7 @@ def parallel_adaptive_conditional_sampling(
     :param seeds: Initial samples of the MCMC chains with shape (n_chains, n_dims)
     :param seed_outputs: Propagated values of the seeds (one value for each seed).
     :param n_samples_per_chain: Number of samples to generate per chain
-    :param limit_value: Current limit used by the subset simulation, in general >= 0
+    :param limit_value: Current limit used by the subset simulation, in general :math:`\geq 0`
     :param lambda_iter: Initial value of the scaling parameter :math:`lambda` in Eqs. 23-26
     :param initial_std_dev: Initial standard deviations of normal distributions to sample from, each with the mean
         equal to one of the seeds.
