@@ -109,7 +109,6 @@ class DirectionalSimulation(integrator.ProbabilityIntegrator):
             max_distance,
             self.settings.min_samples_per_direction,
         )
-        zero_inclusive = bool(self.settings.comparison(np.zeros(1), 0.0))
 
         def for_loop_body(direction):
             return _directional_probability(
@@ -119,7 +118,6 @@ class DirectionalSimulation(integrator.ProbabilityIntegrator):
                 center,
                 find_all=not self.settings.monotonic,
                 zero_tol=self.settings.zero_tolerance,
-                zero_inclusive=zero_inclusive,
             )
 
         results = utils.single_or_multiprocess(
@@ -153,7 +151,6 @@ def _directional_probability(
     center: np.ndarray,
     find_all: bool = True,
     zero_tol: float = 1e-16,
-    zero_inclusive: bool = False,
 ) -> tuple[float, np.ndarray, np.ndarray]:
     roots, history_x, history_y = _find_sign_changes(
         envelope,
@@ -162,14 +159,11 @@ def _directional_probability(
         center,
         find_all=find_all,
         zero_tol=zero_tol,
-        zero_inclusive=zero_inclusive,
     )
     roots = np.sort(roots)
     roots = np.sign(roots) * roots**2  # to handle -infty
 
-    if center > zero_tol or (
-        np.isclose(center, 0, atol=zero_tol) and not zero_inclusive
-    ):
+    if center > zero_tol or (np.isclose(center, 0, atol=zero_tol)):
         directional_probabilities = 1 - stats.chi2.cdf(
             roots, df=direction.size
         )  # Eq. 2.105
@@ -178,12 +172,11 @@ def _directional_probability(
     if directional_probabilities.shape[0] == 1:
         return float(directional_probabilities[0]), history_x, history_y
     signs = np.ones(directional_probabilities.shape)
-    if np.isclose(center, 0, atol=zero_tol):
-        neg_slice = slice(0, None, 2) if zero_inclusive else slice(1, None, 2)
-    elif center > 0:
-        neg_slice = slice(1, None, 2)
-    else:
+    if center < 0 or np.isclose(center, 0, atol=zero_tol):
         neg_slice = slice(0, None, 2)
+    else:
+        neg_slice = slice(1, None, 2)
+
     signs[neg_slice] = -1
     total_directional_probability = np.sum(
         directional_probabilities * signs
@@ -198,7 +191,6 @@ def _find_sign_changes(
     center: np.ndarray,
     find_all: bool = True,
     zero_tol: float = 1e-16,
-    zero_inclusive: bool = False,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     history_x, history_y = [], []
 
@@ -221,6 +213,15 @@ def _find_sign_changes(
         hist_y = hist_y.reshape((hist_x.shape[0], -1))
         return hist_x, hist_y
 
+    def signed_infinity_root():
+        if np.isclose(center, 0.0, atol=zero_tol) and results[-1] < 0:
+            # Every grid point was negative and center is 0., so we want to set the probability of
+            # this direction to 1.
+            # In case zero_inclusive, setting root to infinity yields 1. in this case,
+            # otherwise negative infinity
+            return np.array([float("-inf")])
+        return np.array([float("inf")])
+
     results = direction_envelope(search_grid)
     results = np.append([center], results).tolist()
     search_grid = np.append([0], search_grid).tolist()
@@ -229,7 +230,7 @@ def _find_sign_changes(
 
     if ids.size == 0:
         history_x, history_y = reshaped_histories()
-        return np.array([float("inf")]), history_x, history_y
+        return signed_infinity_root(), history_x, history_y
 
     roots = []
     for next_id in range(max(0, int(ids[0]) - 1) + 1, len(results)):
@@ -254,17 +255,7 @@ def _find_sign_changes(
             break
 
     if not roots:
-        roots = np.array([float("inf")])
-        if (
-            np.isclose(center, 0.0, atol=zero_tol)
-            and results[-1] < 0
-            and not zero_inclusive
-        ):
-            # Every grid point was negative and center is 0., so we want to set the probability of
-            # this direction to 1.
-            # In case zero_inclusive, setting root to infinity yields 1. in this case,
-            # otherwise negative infinity
-            roots = np.array([float("-inf")])
+        roots = signed_infinity_root()
 
     history_x, history_y = reshaped_histories()
     return np.array(roots), history_x, history_y
