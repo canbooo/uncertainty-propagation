@@ -88,16 +88,16 @@ class FirstOrderApproximation(ProbabilityIntegrator):
         # Although this is a recomputation, it is difficult to avoid
         # as history_y alone is not sufficient to handle cases, where the passed limit to
         # calculated probability is != 0. We do not reinsert it to the history.
-        is_negative = envelope(np.zeros((1, space.dimensions)))[0] < 0
+        if self.settings.comparison(envelope(np.zeros((1, space.dimensions)))[0], 0.0):
+            factor = 1
+        else:
+            factor = -1.0
 
         if mpps.shape[0] == 0:
             # following is already in the history if caching is enabled
             cur, _, _ = envelope(np.zeros((1, space.dimensions)))
             probability = 1.0 if self.settings.comparison(cur, 0.0) else 0.0
             return probability, 0.0, (history_x, history_y)
-
-        # We depend on the fact that first sample in x_start is [0, 0, ...]
-        factor = 1 if is_negative else -1
 
         safety_indexes = np.linalg.norm(mpps, axis=1)
 

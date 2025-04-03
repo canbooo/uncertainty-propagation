@@ -96,7 +96,10 @@ def _initialize(
 ) -> transform.StandardNormalTransformer:
     if transformer_cls is not None:
         return transformer_cls(space)
-    if np.isclose(space.correlation, np.eye(space.dimensions)).all():
+    if (
+        space.dimensions == 1
+        or np.isclose(space.correlation, np.eye(space.dimensions)).all()
+    ):
         return transform.InverseTransformSampler(space)
     return transform.NatafTransformer(space)
 
