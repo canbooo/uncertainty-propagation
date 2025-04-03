@@ -1,9 +1,9 @@
 # `uncertainty-propagation`: Tools to propagate parameter uncertainty through deterministic black-box functions
 
 <p float="left">
-    <img src="docs/source/images/readme_mcs_1d.gif" alt="Image: Monte Carlo simulation to approximate 1-d function distribution" width="200">
-    <img src="docs/source/images/readme_ds_1d.gif" alt="Image: Directional simulation to approximate 1-d function distribution" width="200">
-    <img src="docs/source/images/readme_ss_1d.gif" alt="Image: Subset simulation to approximate 1-d function distribution" width="200">
+    <img src="docs/source/images/readme_mcs_1d.gif" alt="Image: Monte Carlo simulation to approximate 1-d function distribution" width="300">
+    <img src="docs/source/images/readme_ds_1d.gif" alt="Image: Directional simulation to approximate 1-d function distribution" width="300">
+    <img src="docs/source/images/readme_ss_1d.gif" alt="Image: Subset simulation to approximate 1-d function distribution" width="300">
 </p>
 
 The `uncertainty-propagation` library provides efficient and scalable methods for approximating the output distribution of $Y=f(X)$,
@@ -17,14 +17,14 @@ and importance sampling are integrated to provide flexible and scalable uncertai
 
 Consider the 2-d [Rastrigin function](https://www.sfu.ca/~ssurjano/rastr.html):
 
-<img src="docs/source/images/readme_2d_function.png" alt="Image: Modified 2-d Rastrigin function" width="300">
+<img src="docs/source/images/readme_2d_function.png" alt="Image: Modified 2-d Rastrigin function" width="400">
 
 Animations below show how directional and subset simulation tackle the same problem in different ways,
 achieving similar approximation accuracy with a fraction of the Monte Carlo sample budget:
 
 <p float="left">
-    <img src="docs/source/images/readme_ds_2d.gif" alt="Image: Directional simulation to approximate 2-d function distribution" width="300">
-    <img src="docs/source/images/readme_ss_2d.gif" alt="Image: Subset simulation to approximate 2-d function distribution" width="300">
+    <img src="docs/source/images/readme_ds_2d.gif" alt="Image: Directional simulation to approximate 2-d function distribution" width="400">
+    <img src="docs/source/images/readme_ss_2d.gif" alt="Image: Subset simulation to approximate 2-d function distribution" width="400">
 </p>
 
 ## Features
