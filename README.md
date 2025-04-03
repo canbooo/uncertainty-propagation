@@ -1,10 +1,6 @@
 # `uncertainty-propagation`: Tools to propagate parameter uncertainty through deterministic black-box functions
 
-<p float="left">
-    <img src="docs/source/images/readme_mcs_1d.gif" alt="Image: Monte Carlo simulation to approximate 1-d function distribution" width="300">
-    <img src="docs/source/images/readme_ds_1d.gif" alt="Image: Directional simulation to approximate 1-d function distribution" width="300">
-    <img src="docs/source/images/readme_ss_1d.gif" alt="Image: Subset simulation to approximate 1-d function distribution" width="300">
-</p>
+<img src="docs/source/images/readme_mcs_1d.gif" alt="Image: Monte Carlo simulation to approximate 1-d function distribution" width="800">
 
 The `uncertainty-propagation` library provides efficient and scalable methods for approximating the output distribution of $Y=f(X)$,
 i.e. the probability $P(Y \leq y)$, when the input $X$ is a random variable with a known distribution.
@@ -22,10 +18,8 @@ Consider the 2-d [Rastrigin function](https://www.sfu.ca/~ssurjano/rastr.html):
 Animations below show how directional and subset simulation tackle the same problem in different ways,
 achieving similar approximation accuracy with a fraction of the Monte Carlo sample budget:
 
-<p float="left">
-    <img src="docs/source/images/readme_ds_2d.gif" alt="Image: Directional simulation to approximate 2-d function distribution" width="400">
-    <img src="docs/source/images/readme_ss_2d.gif" alt="Image: Subset simulation to approximate 2-d function distribution" width="400">
-</p>
+<img src="docs/source/images/readme_ds_2d.gif" alt="Image: Directional simulation to approximate 2-d function distribution" width="600">
+<img src="docs/source/images/readme_ss_2d.gif" alt="Image: Subset simulation to approximate 2-d function distribution" width="600">
 
 ## Features
 
