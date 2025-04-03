@@ -138,6 +138,9 @@ class DirectionalSimulation(integrator.ProbabilityIntegrator):
                     cache_y=cache,
                 )
 
+        if self.settings.comparison(1, 0):
+            # greater comparison so the inverse probability should be returned
+            probabilities = 1.0 - np.array(probabilities)
         probability = float(np.mean(probabilities))
         std_err = np.std(probabilities, ddof=1) / np.sqrt(len(probabilities))
         return probability, std_err, (history_x, history_y)
@@ -159,6 +162,7 @@ def _directional_probability(
         center,
         find_all=find_all,
         zero_tol=zero_tol,
+        zero_inclusive=zero_inclusive,
     )
     roots = np.sort(roots)
     roots = np.sign(roots) * roots**2  # to handle -infty
@@ -194,6 +198,7 @@ def _find_sign_changes(
     center: np.ndarray,
     find_all: bool = True,
     zero_tol: float = 1e-16,
+    zero_inclusive: bool = False,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     history_x, history_y = [], []
 
@@ -250,7 +255,15 @@ def _find_sign_changes(
 
     if not roots:
         roots = np.array([float("inf")])
-        if np.isclose(center, 0.0, atol=zero_tol) and results[-1] < 0:
+        if (
+            np.isclose(center, 0.0, atol=zero_tol)
+            and results[-1] < 0
+            and not zero_inclusive
+        ):
+            # Every grid point was negative and center is 0., so we want to set the probability of
+            # this direction to 1.
+            # In case zero_inclusive, setting root to infinity yields 1. in this case,
+            # otherwise negative infinity
             roots = np.array([float("-inf")])
 
     history_x, history_y = reshaped_histories()

@@ -71,6 +71,25 @@ class SubsetSimulation(ProbabilityIntegrator):
             # already compute the result using the Monte Carlo estimate
             indicators = self.settings.comparison(outputs, 0.0)
             probability = float(np.mean(indicators))
+
+            if probability > 1 - self.settings.min_subset_probability:
+                # Handle edge case where we have a probability, that is larger than 1 - settings.min_subset_probability
+                # in this case, our assumption is correct but not sufficient for an accurate estimate.
+                # We solve the inverse problem to increase the expected accuracy
+                def inverse_envelope(
+                    x: np.ndarray,
+                ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+                    y, h_x, h_y = envelope(x)
+                    return -1.0 * y, h_x, h_y
+
+                inverse_probability, std_err, (hist_x, hist_y) = (
+                    self._calculate_probability(space, inverse_envelope, cache=cache)
+                )
+                history_x, history_y = utils.extend_cache(
+                    history_x, history_y, hist_x, hist_y, cache_x=cache, cache_y=cache
+                )
+                return (1 - inverse_probability), std_err, (history_x, history_y)
+
             std_err = np.sqrt(probability * (1 - probability) / inputs.shape[0])
             return probability, std_err, (history_x, history_y)
 
