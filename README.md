@@ -18,8 +18,8 @@ Consider the 2-d [Rastrigin function](https://www.sfu.ca/~ssurjano/rastr.html):
 Animations below show how directional and subset simulation tackle the same problem in different ways,
 achieving similar approximation accuracy with a fraction of the Monte Carlo sample budget:
 
-<img src="docs/source/images/readme_ds_2d.gif" alt="Image: Directional simulation to approximate 2-d function distribution" width="600">
-<img src="docs/source/images/readme_ss_2d.gif" alt="Image: Subset simulation to approximate 2-d function distribution" width="600">
+<img src="docs/source/images/readme_ds_2d.gif" alt="Image: Directional simulation to approximate 2-d function distribution" width="800">
+<img src="docs/source/images/readme_ss_2d.gif" alt="Image: Subset simulation to approximate 2-d function distribution" width="800">
 
 ## Features
 
