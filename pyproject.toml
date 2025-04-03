@@ -11,7 +11,7 @@ packages = [{include = "uncertainty_propagation"}]
 python = "^3.10"
 numpy = "^2.1.0"
 joblib = "^1.4.2"
-experiment-design = "^0.1.3"
+experiment-design = "^0.1.4"
 scipy = "^1.14.1"
 
 [tool.poetry.group.dev]
