@@ -172,7 +172,7 @@ def _directional_probability(
     if directional_probabilities.shape[0] == 1:
         return float(directional_probabilities[0]), history_x, history_y
     signs = np.ones(directional_probabilities.shape)
-    if center < 0 or np.isclose(center, 0, atol=zero_tol):
+    if center < zero_tol:
         neg_slice = slice(0, None, 2)
     else:
         neg_slice = slice(1, None, 2)
